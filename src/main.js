@@ -2,13 +2,15 @@
 const SPREADSHEET_ID = '1dYFIQCIcVmyEwN4u6_So5z36xMUS8Yo-M2tzqW0DcJs';
 const SHEET_NAME = 'publicadores';
 const MONTH = "Abr 26";
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
 
 // Google Client ID
 const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleusercontent.com';
 
 let state = {
   accessToken: localStorage.getItem('sheets_access_token'),
+  userEmail: localStorage.getItem('user_email'),
+  groupNumber: localStorage.getItem('group_number') || 1,
   data: [],
   headers: [],
   loading: false,
@@ -129,11 +131,39 @@ function login() {
   const client = window.google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
-    callback: (response) => {
+    callback: async (response) => {
       if (response.access_token) {
         localStorage.setItem('sheets_access_token', response.access_token);
-        setState({ accessToken: response.access_token, error: null });
-        loadData();
+        
+        // Fetch user email to determine group
+        try {
+          const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${response.access_token}` }
+          });
+          const userData = await userResponse.json();
+          const email = userData.email || '';
+          
+          // Determinamos el grupo basado en el email
+          let groupNumber = 1;
+          if (email.toLowerCase() === 'i@ismaelmachado.com') {
+            groupNumber = 2;
+          }
+          
+          localStorage.setItem('user_email', email);
+          localStorage.setItem('group_number', groupNumber);
+          
+          setState({ 
+            accessToken: response.access_token, 
+            userEmail: email, 
+            groupNumber: groupNumber,
+            error: null 
+          });
+          loadData();
+        } catch (err) {
+          console.error('Error fetching user info:', err);
+          setState({ accessToken: response.access_token, error: null });
+          loadData();
+        }
       }
     },
     error_callback: (err) => {
@@ -146,7 +176,9 @@ function login() {
 
 function logout() {
   localStorage.removeItem('sheets_access_token');
-  setState({ accessToken: null, data: [], headers: [] });
+  localStorage.removeItem('user_email');
+  localStorage.removeItem('group_number');
+  setState({ accessToken: null, userEmail: null, groupNumber: 1, data: [], headers: [] });
 }
 
 async function handleUpdate(pub, field, value) {
@@ -188,7 +220,7 @@ function LoginView() {
           <i data-lucide="file-spreadsheet" class="w-8 h-8"></i>
         </div>
         <h1 class="text-2xl font-bold text-slate-900 mb-2">Informe de Servicio</h1>
-        <p class="text-slate-500 mb-8">Conecte con Google Sheets para gestionar los informes del Grupo 1.</p>
+        <p class="text-slate-500 mb-8">Conecte con Google Sheets para gestionar los informes de servicio.</p>
         
         ${state.error ? `
           <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-6 text-xs text-red-700 text-left">
@@ -206,10 +238,11 @@ function LoginView() {
 }
 
 function MainView() {
+  const currentGroup = state.groupNumber.toString();
   const groupData = state.data.filter(p => {
     const norm = p.grupo.toString().trim();
-    const isG1 = norm === "1" || norm === "1.0" || norm.toLowerCase() === "grupo 1";
-    return isG1 && p.nombre.toLowerCase().includes(state.searchTerm.toLowerCase());
+    const isCurrentGroup = norm === currentGroup || norm === `${currentGroup}.0` || norm.toLowerCase() === `grupo ${currentGroup}`;
+    return isCurrentGroup && p.nombre.toLowerCase().includes(state.searchTerm.toLowerCase());
   });
 
   const activos = groupData.filter(p => p.participo).length;
@@ -219,10 +252,10 @@ function MainView() {
   return `
     <header class="h-20 bg-white border-b border-slate-200 px-10 flex items-center justify-between flex-shrink-0">
       <div class="flex items-center gap-4">
-        <div class="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-xl ring-4 ring-indigo-50">1</div>
+        <div class="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-xl ring-4 ring-indigo-50">${currentGroup}</div>
         <div>
           <h1 class="text-xl font-bold tracking-tight">Informe de Servicio</h1>
-          <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Grupo 1 • Shangrilá</p>
+          <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Grupo ${currentGroup} • Shangrilá</p>
         </div>
       </div>
       <div class="flex items-center gap-4">
@@ -350,7 +383,7 @@ function MainView() {
         </div>
 
         <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 font-medium gap-2">
-          <div>Mostrando ${groupData.length} publicadores del Grupo 1</div>
+          <div>Mostrando ${groupData.length} publicadores del Grupo ${state.groupNumber}</div>
           <div class="flex items-center gap-3">
             ${state.saving ? `
               <span class="flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Guardando...</span>
@@ -382,7 +415,7 @@ function LoadingView() {
     <div class="min-h-screen bg-slate-50 flex items-center justify-center">
       <div class="text-center">
         <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4"></i>
-        <p class="text-slate-500 font-medium">Cargando datos del grupo...</p>
+        <p class="text-slate-500 font-medium">Cargando datos del Grupo ${state.groupNumber}...</p>
       </div>
     </div>
   `;
