@@ -68,6 +68,56 @@ function getColumnLetter(index) {
 }
 
 // --- App Logic ---
+async function fetchGroupConfig(email) {
+  try {
+    // URL de la tabla de configuración publicada como HTML
+    const configUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQh7A0m51lNzuYeQsuRcYPr3EBzqavadrdG6-K8ij_eq5DSHmWiYIDgRIbl3p0dsfryo_NkNHqSfokM/pubhtml';
+    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(configUrl)}`);
+    const data = await response.json();
+    const html = data.contents;
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const rows = Array.from(doc.querySelectorAll('table tr'));
+    
+    if (rows.length === 0) return 1;
+
+    // Buscamos las cabeceras para identificar las columnas por nombre
+    const headers = Array.from(rows[0].querySelectorAll('td')).map(td => td.textContent.trim().toLowerCase());
+    const emailIndex = headers.indexOf('correo electrónico');
+    const groupIndex = headers.indexOf('grupo');
+
+    if (emailIndex === -1 || groupIndex === -1) {
+      // Intento alternativo si las cabeceras no están en la primera fila o tienen nombres diferentes
+      // Por defecto buscaremos en todas las filas
+      for (let i = 0; i < rows.length; i++) {
+        const cells = Array.from(rows[i].querySelectorAll('td')).map(c => c.textContent.trim());
+        const foundEmail = cells.find(c => c.toLowerCase() === email.toLowerCase());
+        if (foundEmail) {
+          // Si encontramos el email, el grupo suele estar en una columna cercana. 
+          // Este es un fallback heurístico.
+          const gIndex = cells.findIndex(c => !isNaN(parseInt(c)) && parseInt(c) < 100);
+          if (gIndex !== -1) return parseInt(cells[gIndex]);
+        }
+      }
+      return 1;
+    }
+
+    for (let i = 1; i < rows.length; i++) {
+      const cells = Array.from(rows[i].querySelectorAll('td'));
+      if (cells[emailIndex] && cells[emailIndex].textContent.trim().toLowerCase() === email.toLowerCase()) {
+        const groupVal = cells[groupIndex].textContent.trim();
+        return parseInt(groupVal) || 1;
+      }
+    }
+    
+    return 1;
+  } catch (err) {
+    console.error('Error fetching group config:', err);
+    return 1;
+  }
+}
+
 function setState(newState) {
   state = { ...state, ...newState };
   render();
@@ -143,11 +193,8 @@ function login() {
           const userData = await userResponse.json();
           const email = userData.email || '';
           
-          // Determinamos el grupo basado en el email
-          let groupNumber = 1;
-          if (email.toLowerCase() === 'i@ismaelmachado.com') {
-            groupNumber = 2;
-          }
+          // Determinamos el grupo basado en el email y la tabla de configuración externa
+          const groupNumber = await fetchGroupConfig(email);
           
           localStorage.setItem('user_email', email);
           localStorage.setItem('group_number', groupNumber);
@@ -301,9 +348,10 @@ function MainView() {
       ${StatCard("Regulares", regulares)}
     </div>
 
-    <main class="px-10 flex-grow flex flex-col min-h-0 pb-8">
+    <main class="px-4 sm:px-10 flex-grow flex flex-col min-h-0 pb-8">
       <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col h-full shadow-sm">
-        <div class="grid grid-cols-12 bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 py-4">
+        <!-- Desktop Header -->
+        <div class="hidden md:grid grid-cols-12 bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 py-4">
           <div class="col-span-3 px-8">Publicador</div>
           <div class="col-span-1 text-center">Particip&oacute;</div>
           <div class="col-span-1 text-center">Cursos</div>
@@ -314,7 +362,8 @@ function MainView() {
 
         <div class="flex-grow overflow-y-auto">
           ${groupData.map((pub, idx) => `
-            <div data-pub-id="${pub.id}" class="grid grid-cols-12 border-b border-slate-100 hover:bg-indigo-50/20 transition-colors items-center min-h-[3.5rem] ${idx % 2 === 1 ? 'bg-slate-50/30' : ''}">
+            <!-- Desktop Row -->
+            <div data-pub-id="${pub.id}" class="hidden md:grid grid-cols-12 border-b border-slate-100 hover:bg-indigo-50/20 transition-colors items-center min-h-[3.5rem] ${idx % 2 === 1 ? 'bg-slate-50/30' : ''}">
               <div class="col-span-3 px-8 font-semibold text-sm text-slate-700">${pub.nombre}</div>
               
               <div class="col-span-1 flex justify-center">
@@ -338,12 +387,12 @@ function MainView() {
 
               <div class="col-span-2 px-4 text-center">
                 <select 
-                  class="precursorado-select bg-slate-100 text-[10px] font-bold border-none rounded-lg px-3 py-1.5 appearance-none uppercase cursor-pointer text-slate-600 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  class="precursorado-select bg-slate-100 text-[10px] font-bold border-none rounded-lg px-3 py-1.5 appearance-none uppercase cursor-pointer text-slate-600 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
                   ${state.saving === `${pub.id}-precursorado` ? 'disabled' : ''}
                 >
                   <option value="" ${pub.precursorado === '' ? 'selected' : ''}></option>
-                  <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Auxiliar 15 hs</option>
-                  <option value="Auxiliar 30 hs" ${pub.precursorado === 'Auxiliar 30 hs' ? 'selected' : ''}>Auxiliar 30 hs</option>
+                  <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Aux15</option>
+                  <option value="Auxiliar 30 hs" ${pub.precursorado === 'Auxiliar 30 hs' ? 'selected' : ''}>Aux30</option>
                   <option value="Regular" ${pub.precursorado === 'Regular' ? 'selected' : ''}>Regular</option>
                 </select>
               </div>
@@ -377,6 +426,82 @@ function MainView() {
                   placeholder="Añadir nota..."
                   ${state.saving === `${pub.id}-notas` ? 'disabled' : ''}
                 />
+              </div>
+            </div>
+
+            <!-- Mobile Card -->
+            <div data-pub-id="${pub.id}" class="md:hidden p-4 border-b border-slate-100 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-700">${pub.nombre}</h3>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 h-11">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase">Participó</span>
+                  <input 
+                    type="checkbox" 
+                    class="participo-check w-6 h-6 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-30"
+                    ${pub.participo ? 'checked' : ''}
+                    ${state.saving === `${pub.id}-participo` ? 'disabled' : ''}
+                  />
+                </div>
+
+                <div class="relative">
+                  <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Cursos</label>
+                  <input 
+                    type="number" 
+                    class="cursos-input w-full bg-white border border-slate-200 rounded-xl h-11 px-3 text-sm font-bold text-center"
+                    value="${pub.cursos}"
+                    min="0"
+                    ${state.saving === `${pub.id}-cursos` ? 'disabled' : ''}
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="relative">
+                  <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Precursorado</label>
+                  <select 
+                    class="precursorado-select w-full bg-white border border-slate-200 rounded-xl h-11 px-3 text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500/20 appearance-none"
+                    ${state.saving === `${pub.id}-precursorado` ? 'disabled' : ''}
+                  >
+                    <option value="" ${pub.precursorado === '' ? 'selected' : ''}>Ninguno</option>
+                    <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Auxiliar 15 hs</option>
+                    <option value="Auxiliar 30 hs" ${pub.precursorado === 'Auxiliar 30 hs' ? 'selected' : ''}>Auxiliar 30 hs</option>
+                    <option value="Regular" ${pub.precursorado === 'Regular' ? 'selected' : ''}>Regular</option>
+                  </select>
+                </div>
+
+                <div class="relative">
+                  ${pub.precursorado ? (() => {
+                    const hasError = pub.participo && pub.precursorado && pub.horas === 0;
+                    return `
+                      <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Horas</label>
+                      <input 
+                        type="number" 
+                        class="horas-input w-full h-11 bg-white px-3 rounded-xl border text-sm font-bold text-center transition-all
+                        ${hasError 
+                          ? 'bg-red-50 border-red-500 text-red-700' 
+                          : 'border-slate-200 focus:border-indigo-400'
+                        }
+                        disabled:opacity-30"
+                        value="${pub.horas}"
+                        min="0"
+                        ${state.saving === `${pub.id}-horas` ? 'disabled' : ''}
+                      />
+                    `;
+                  })() : ''}
+                </div>
+              </div>
+
+              <div class="relative">
+                <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Notas</label>
+                <textarea 
+                  class="notas-input w-full bg-white border border-slate-200 rounded-xl p-3 pt-4 text-xs text-slate-600 italic focus:ring-2 focus:ring-indigo-500/20"
+                  rows="2"
+                  placeholder="..."
+                  ${state.saving === `${pub.id}-notas` ? 'disabled' : ''}
+                >${pub.notas}</textarea>
               </div>
             </div>
           `).join('')}
