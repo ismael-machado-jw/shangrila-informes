@@ -11,6 +11,7 @@ let state = {
   accessToken: localStorage.getItem('sheets_access_token'),
   userEmail: localStorage.getItem('user_email'),
   groupNumber: localStorage.getItem('group_number') || 1,
+  fetchingInfo: false,
   data: [],
   headers: [],
   loading: false,
@@ -70,7 +71,6 @@ function getColumnLetter(index) {
 // --- App Logic ---
 async function fetchGroupConfig(email) {
   try {
-    // URL de la tabla de configuración publicada como HTML
     const configUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQh7A0m51lNzuYeQsuRcYPr3EBzqavadrdG6-K8ij_eq5DSHmWiYIDgRIbl3p0dsfryo_NkNHqSfokM/pubhtml';
     const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(configUrl)}`);
     const data = await response.json();
@@ -78,37 +78,42 @@ async function fetchGroupConfig(email) {
     
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    const rows = Array.from(doc.querySelectorAll('table tr'));
+    const table = doc.querySelector('table');
+    if (!table) return 1;
     
-    if (rows.length === 0) return 1;
+    const rows = Array.from(table.querySelectorAll('tr'));
+    let emailIndex = -1;
+    let groupIndex = -1;
+    let headerRowIndex = -1;
 
-    // Buscamos las cabeceras para identificar las columnas por nombre
-    const headers = Array.from(rows[0].querySelectorAll('td')).map(td => td.textContent.trim().toLowerCase());
-    const emailIndex = headers.indexOf('correo electrónico');
-    const groupIndex = headers.indexOf('grupo');
-
-    if (emailIndex === -1 || groupIndex === -1) {
-      // Intento alternativo si las cabeceras no están en la primera fila o tienen nombres diferentes
-      // Por defecto buscaremos en todas las filas
-      for (let i = 0; i < rows.length; i++) {
-        const cells = Array.from(rows[i].querySelectorAll('td')).map(c => c.textContent.trim());
-        const foundEmail = cells.find(c => c.toLowerCase() === email.toLowerCase());
-        if (foundEmail) {
-          // Si encontramos el email, el grupo suele estar en una columna cercana. 
-          // Este es un fallback heurístico.
-          const gIndex = cells.findIndex(c => !isNaN(parseInt(c)) && parseInt(c) < 100);
-          if (gIndex !== -1) return parseInt(cells[gIndex]);
+    for (let i = 0; i < Math.min(rows.length, 5); i++) {
+        const cells = Array.from(rows[i].querySelectorAll('td')).map(td => td.textContent.trim().toLowerCase());
+        const eIdx = cells.indexOf('correo electrónico');
+        const gIdx = cells.indexOf('grupo');
+        if (eIdx !== -1 && gIdx !== -1) {
+            emailIndex = eIdx;
+            groupIndex = gIdx;
+            headerRowIndex = i;
+            break;
         }
-      }
-      return 1;
     }
 
-    for (let i = 1; i < rows.length; i++) {
-      const cells = Array.from(rows[i].querySelectorAll('td'));
-      if (cells[emailIndex] && cells[emailIndex].textContent.trim().toLowerCase() === email.toLowerCase()) {
-        const groupVal = cells[groupIndex].textContent.trim();
-        return parseInt(groupVal) || 1;
-      }
+    if (emailIndex !== -1) {
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+            const cells = Array.from(rows[i].querySelectorAll('td'));
+            if (cells[emailIndex] && cells[emailIndex].textContent.trim().toLowerCase() === email.toLowerCase()) {
+                return parseInt(cells[groupIndex].textContent.trim()) || 1;
+            }
+        }
+    } else {
+        for (let i = 0; i < rows.length; i++) {
+            const cells = Array.from(rows[i].querySelectorAll('td')).map(c => c.textContent.trim());
+            const foundEmail = cells.find(c => c.toLowerCase() === email.toLowerCase());
+            if (foundEmail) {
+                const gIndex = cells.findIndex(c => !isNaN(parseInt(c)) && parseInt(c) < 100);
+                if (gIndex !== -1) return parseInt(cells[gIndex]);
+            }
+        }
     }
     
     return 1;
@@ -189,6 +194,7 @@ function login() {
         setState({ 
           accessToken: response.access_token, 
           loading: true, 
+          fetchingInfo: true,
           error: null 
         });
         
@@ -208,11 +214,13 @@ function login() {
           
           setState({ 
             userEmail: email, 
-            groupNumber: groupNumber
+            groupNumber: groupNumber,
+            fetchingInfo: false
           });
           loadData();
         } catch (err) {
           console.error('Error fetching user info:', err);
+          setState({ fetchingInfo: false });
           loadData();
         }
       }
@@ -293,10 +301,20 @@ function MainHeader() {
   return `
     <header class="h-20 bg-white border-b border-slate-200 px-4 sm:px-10 flex items-center justify-between flex-shrink-0">
       <div class="flex items-center gap-4">
-        <div class="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-xl ring-4 ring-indigo-50">${currentGroup}</div>
+        ${state.fetchingInfo ? `
+          <div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center ring-4 ring-slate-50 animate-pulse">
+            <div class="w-4 h-4 bg-slate-200 rounded"></div>
+          </div>
+        ` : `
+          <div class="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-xl ring-4 ring-indigo-50">${currentGroup}</div>
+        `}
         <div>
           <h1 class="text-xl font-bold tracking-tight">Informe de Servicio</h1>
-          <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Grupo ${currentGroup} • Shangrilá</p>
+          ${state.fetchingInfo ? `
+            <div class="h-3 w-24 bg-slate-100 rounded mt-1 animate-pulse"></div>
+          ` : `
+            <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Grupo ${currentGroup} • Shangrilá</p>
+          `}
         </div>
       </div>
       <div class="flex items-center gap-4">
