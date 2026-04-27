@@ -71,51 +71,44 @@ function getColumnLetter(index) {
 // --- App Logic ---
 async function fetchGroupConfig(email) {
   try {
-    const configUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQh7A0m51lNzuYeQsuRcYPr3EBzqavadrdG6-K8ij_eq5DSHmWiYIDgRIbl3p0dsfryo_NkNHqSfokM/pubhtml';
-    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(configUrl)}`);
+    const configUrl = 'https://sheets.googleapis.com/v4/spreadsheets/1TXTFt4uPkygz9MOxeogkfWy4p4WTqDWLDUYqluEQhXg/values/publicadores?key=AIzaSyD37ddBLRxw48pq0CLXYd2LIjUrneaKk5s';
+    const response = await fetch(configUrl);
     const data = await response.json();
-    const html = data.contents;
     
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const table = doc.querySelector('table');
-    if (!table) return 1;
-    
-    const rows = Array.from(table.querySelectorAll('tr'));
-    let emailIndex = -1;
-    let groupIndex = -1;
-    let headerRowIndex = -1;
+    if (!data || !data.values || data.values.length === 0) return 1;
 
-    for (let i = 0; i < Math.min(rows.length, 5); i++) {
-        const cells = Array.from(rows[i].querySelectorAll('td')).map(td => td.textContent.trim().toLowerCase());
-        const eIdx = cells.indexOf('correo electrónico');
-        const gIdx = cells.indexOf('grupo');
-        if (eIdx !== -1 && gIdx !== -1) {
-            emailIndex = eIdx;
-            groupIndex = gIdx;
-            headerRowIndex = i;
-            break;
+    const rows = data.values;
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    
+    const emailIndex = headers.indexOf('correo electrónico');
+    const groupIndex = headers.indexOf('grupo');
+
+    if (emailIndex === -1 || groupIndex === -1) {
+      for (const row of rows) {
+        const foundEmailIndex = row.findIndex(c => c.trim().toLowerCase() === email.toLowerCase());
+        if (foundEmailIndex !== -1) {
+          const gCol = row.findIndex((c, idx) => idx !== foundEmailIndex && !isNaN(parseInt(c)) && parseInt(c) < 100);
+          const group = parseInt(row[gCol]);
+          if (gCol !== -1) { 
+            console.log('Group found:' + group);
+            return group || 1;
+          }
         }
+      }
+      console.log('No group found defaulting to 1');
+      return 1;
     }
 
-    if (emailIndex !== -1) {
-        for (let i = headerRowIndex + 1; i < rows.length; i++) {
-            const cells = Array.from(rows[i].querySelectorAll('td'));
-            if (cells[emailIndex] && cells[emailIndex].textContent.trim().toLowerCase() === email.toLowerCase()) {
-                return parseInt(cells[groupIndex].textContent.trim()) || 1;
-            }
-        }
-    } else {
-        for (let i = 0; i < rows.length; i++) {
-            const cells = Array.from(rows[i].querySelectorAll('td')).map(c => c.textContent.trim());
-            const foundEmail = cells.find(c => c.toLowerCase() === email.toLowerCase());
-            if (foundEmail) {
-                const gIndex = cells.findIndex(c => !isNaN(parseInt(c)) && parseInt(c) < 100);
-                if (gIndex !== -1) return parseInt(cells[gIndex]);
-            }
-        }
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row[emailIndex] && row[emailIndex].trim().toLowerCase() === email.toLowerCase()) {
+        const group = parseInt(row[groupIndex]);
+        console.log('Group found:' + group);
+        return group || 1;
+      }
     }
     
+    console.log('No group found defaulting to 1');
     return 1;
   } catch (err) {
     console.error('Error fetching group config:', err);
