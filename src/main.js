@@ -412,8 +412,8 @@ function MainView() {
                   ${state.saving === `${pub.id}-precursorado` ? 'disabled' : ''}
                 >
                   <option value="" ${pub.precursorado === '' ? 'selected' : ''}></option>
-                  <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Aux15</option>
-                  <option value="Auxiliar 30 hs" ${pub.precursorado === 'Auxiliar 30 hs' ? 'selected' : ''}>Aux30</option>
+                  <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Auxiliar 15 hs</option>
+                  <option value="Auxiliar 30 hs" ${pub.precursorado === 'Auxiliar 30 hs' ? 'selected' : ''}>Auxiliar 30 hs</option>
                   <option value="Regular" ${pub.precursorado === 'Regular' ? 'selected' : ''}>Regular</option>
                 </select>
               </div>
