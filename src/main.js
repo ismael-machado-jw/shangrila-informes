@@ -70,14 +70,14 @@ function getColumnLetter(index) {
 
 // --- App Logic ---
 function getFriendlyError(err) {
-  const msg = err.message || '';
-  if (msg.includes('403') || msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('scopes')) {
+  const msg = (err.message || err.toString() || '').toLowerCase();
+  if (msg.includes('403') || msg.includes('permission') || msg.includes('scopes')) {
     return 'No tiene permisos suficientes. Al conectar con Google, asegúrese de marcar todas las casillas de verificación de permisos solicitados para que la aplicación pueda funcionar correctamente.';
   }
-  if (msg.includes('401') || msg.toLowerCase().includes('invalid authentication credentials') || msg.toLowerCase().includes('unauthenticated')) {
+  if (msg.includes('401') || msg.includes('invalid authentication credentials') || msg.includes('unauthenticated') || msg.includes('invalid_grant')) {
     return 'Sesión expirada o inválida. Por favor inicie sesión nuevamente.';
   }
-  return msg;
+  return err.message || 'Ocurrió un error inesperado.';
 }
 
 async function fetchGroupConfig(email) {
@@ -208,9 +208,19 @@ function login() {
           const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { Authorization: `Bearer ${response.access_token}` }
           });
+          
+          if (!userResponse.ok) {
+            const errorData = await userResponse.json();
+            throw new Error(`${userResponse.status}: ${errorData.error_description || errorData.error?.message || 'Error obteniendo datos del usuario'}`);
+          }
+
           const userData = await userResponse.json();
           const email = userData.email || '';
           
+          if (!email) {
+            throw new Error('No se pudo obtener el correo electrónico del usuario.');
+          }
+
           // Determinamos el grupo basado en el email y la tabla de configuración externa
           const groupNumber = await fetchGroupConfig(email);
           
@@ -234,8 +244,11 @@ function login() {
           loadData();
         } catch (err) {
           console.error('Error fetching user info:', err);
-          setState({ fetchingInfo: false });
-          loadData();
+          const friendlyMsg = getFriendlyError(err);
+          if (friendlyMsg.includes('Sesión expirada')) {
+            logout();
+          }
+          setState({ fetchingInfo: false, error: friendlyMsg });
         }
       }
     },
@@ -281,7 +294,11 @@ async function handleUpdate(pub, field, value) {
     setState({ data: newData, saving: null });
   } catch (err) {
     console.error(err);
-    setState({ saving: null, error: `Error guardando: ${getFriendlyError(err)}` });
+    const friendlyMsg = getFriendlyError(err);
+    if (friendlyMsg.includes('Sesión expirada')) {
+      logout();
+    }
+    setState({ saving: null, error: `Error guardando: ${friendlyMsg}` });
   }
 }
 
@@ -307,9 +324,9 @@ function LoginView() {
         </button>
 
         <div class="mt-8 pt-6 border-t border-slate-100 flex justify-center gap-4 text-[11px] text-slate-400 font-medium">
-          <a href="/privacy.html" class="hover:text-indigo-600 transition-colors">Privacidad</a>
+          <a href="privacy.html" class="hover:text-indigo-600 transition-colors">Privacidad</a>
           <span class="text-slate-200">•</span>
-          <a href="/terms.html" class="hover:text-indigo-600 transition-colors">Condiciones</a>
+          <a href="terms.html" class="hover:text-indigo-600 transition-colors">Condiciones</a>
         </div>
       </div>
     </div>
@@ -559,9 +576,9 @@ function MainView() {
           <div class="flex flex-col gap-1 items-center sm:items-start">
             <div>Mostrando ${groupData.length} publicadores del Grupo ${state.groupNumber}</div>
             <div class="flex gap-2 text-[10px] text-slate-400">
-              <a href="/privacy.html" class="hover:text-indigo-600 transition-colors">Privacidad</a>
+              <a href="privacy.html" class="hover:text-indigo-600 transition-colors">Privacidad</a>
               <span>•</span>
-              <a href="/terms.html" class="hover:text-indigo-600 transition-colors">Condiciones</a>
+              <a href="terms.html" class="hover:text-indigo-600 transition-colors">Condiciones</a>
             </div>
           </div>
           <div class="flex items-center gap-3">
