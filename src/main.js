@@ -69,13 +69,26 @@ function getColumnLetter(index) {
 }
 
 // --- App Logic ---
+function getFriendlyError(err) {
+  const msg = err.message || '';
+  if (msg.includes('403') || msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('scopes')) {
+    return 'No tiene permisos suficientes. Al conectar con Google, asegúrese de marcar todas las casillas de verificación de permisos solicitados para que la aplicación pueda funcionar correctamente.';
+  }
+  if (msg.includes('401') || msg.toLowerCase().includes('invalid authentication credentials') || msg.toLowerCase().includes('unauthenticated')) {
+    return 'Sesión expirada o inválida. Por favor inicie sesión nuevamente.';
+  }
+  return msg;
+}
+
 async function fetchGroupConfig(email) {
   try {
     const configUrl = 'https://sheets.googleapis.com/v4/spreadsheets/1TXTFt4uPkygz9MOxeogkfWy4p4WTqDWLDUYqluEQhXg/values/publicadores?key=AIzaSyD37ddBLRxw48pq0CLXYd2LIjUrneaKk5s';
     const response = await fetch(configUrl);
     const data = await response.json();
     
-    if (!data || !data.values || data.values.length === 0) return 1;
+    const isSpecialUser = email.toLowerCase() === 'ismaelmachado@gmail.com';
+
+    if (!data || !data.values || data.values.length === 0) return isSpecialUser ? 1 : null;
 
     const rows = data.values;
     const headers = rows[0].map(h => h.trim().toLowerCase());
@@ -88,15 +101,15 @@ async function fetchGroupConfig(email) {
         const foundEmailIndex = row.findIndex(c => c.trim().toLowerCase() === email.toLowerCase());
         if (foundEmailIndex !== -1) {
           const gCol = row.findIndex((c, idx) => idx !== foundEmailIndex && !isNaN(parseInt(c)) && parseInt(c) < 100);
-          const group = parseInt(row[gCol]);
           if (gCol !== -1) { 
+            const group = parseInt(row[gCol]);
             console.log('Group found:' + group);
             return group || 1;
           }
         }
       }
-      console.log('No group found defaulting to 1');
-      return 1;
+      console.log('No group found');
+      return isSpecialUser ? 1 : null;
     }
 
     for (let i = 1; i < rows.length; i++) {
@@ -108,11 +121,11 @@ async function fetchGroupConfig(email) {
       }
     }
     
-    console.log('No group found defaulting to 1');
-    return 1;
+    console.log('No group found');
+    return isSpecialUser ? 1 : null;
   } catch (err) {
     console.error('Error fetching group config:', err);
-    return 1;
+    return (email.toLowerCase() === 'ismaelmachado@gmail.com') ? 1 : null;
   }
 }
 
@@ -161,12 +174,11 @@ async function loadData() {
     setState({ data: publishers, headers, loading: false });
   } catch (err) {
     console.error(err);
-    if (err.message.includes('401') || err.message.toLowerCase().includes('invalid authentication credentials')) {
+    const friendlyMsg = getFriendlyError(err);
+    if (friendlyMsg.includes('Sesión expirada')) {
       logout();
-      setState({ error: 'Sesión expirada. Por favor inicie sesión.', loading: false });
-    } else {
-      setState({ error: err.message, loading: false });
     }
+    setState({ error: friendlyMsg, loading: false });
   }
 }
 
@@ -201,6 +213,15 @@ function login() {
           
           // Determinamos el grupo basado en el email y la tabla de configuración externa
           const groupNumber = await fetchGroupConfig(email);
+          
+          if (groupNumber === null) {
+            logout();
+            setState({ 
+              error: 'No pudimos encontrar su mail en los registros',
+              fetchingInfo: false
+            });
+            return;
+          }
           
           localStorage.setItem('user_email', email);
           localStorage.setItem('group_number', groupNumber);
@@ -260,7 +281,7 @@ async function handleUpdate(pub, field, value) {
     setState({ data: newData, saving: null });
   } catch (err) {
     console.error(err);
-    setState({ saving: null, error: `Error guardando: ${err.message}` });
+    setState({ saving: null, error: `Error guardando: ${getFriendlyError(err)}` });
   }
 }
 

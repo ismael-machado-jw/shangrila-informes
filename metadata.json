@@ -1,6 +1,6 @@
 {
   "name": "Informes",
-  "description": "Aplicación para la gestión de informes mensuales de publicadores (Grupo 1). Permite registrar participación, cursos, horas y notas.",
+  "description": "Aplicación para la gestión de informes mensuales de publicadores. Permite registrar participación, cursos, horas y notas.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
