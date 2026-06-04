@@ -1,8 +1,29 @@
 // Configuration
 const SPREADSHEET_ID = '1dYFIQCIcVmyEwN4u6_So5z36xMUS8Yo-M2tzqW0DcJs';
 const SHEET_NAME = 'publicadores';
-const MONTH = "Abr 26";
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+
+// Spanish months generator helper for Spanish periods (of the last 6 months starting from last month)
+function getPeriods() {
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const periods = [];
+  const now = new Date();
+  
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthName = months[d.getMonth()];
+    const yearNumber = d.getFullYear() % 100;
+    const label = `${monthName} ${yearNumber}`;
+    periods.push({
+      value: label,
+      isEditable: i === 1,
+    });
+  }
+  return periods;
+}
+
+const PERIODS = getPeriods();
+const DEFAULT_PERIOD = PERIODS[0].value;
 
 // Google Client ID
 const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleusercontent.com';
@@ -11,6 +32,7 @@ let state = {
   accessToken: localStorage.getItem('sheets_access_token'),
   userEmail: localStorage.getItem('user_email'),
   groupNumber: localStorage.getItem('group_number') || 1,
+  selectedPeriod: DEFAULT_PERIOD,
   fetchingInfo: false,
   data: [],
   headers: [],
@@ -150,11 +172,11 @@ async function loadData() {
 
     const idxNombre = findCol('publicador');
     const idxGrupo = findCol('grupo');
-    const idxParticipo = findCol(`${MONTH} participó`);
-    const idxCursos = findCol(`${MONTH} cursos`);
-    const idxPrecursorado = findCol(`${MONTH} precursorado`);
-    const idxHoras = findCol(`${MONTH} horas`);
-    const idxNotas = findCol(`${MONTH} notas`);
+    const idxParticipo = findCol(`${state.selectedPeriod} participó`);
+    const idxCursos = findCol(`${state.selectedPeriod} cursos`);
+    const idxPrecursorado = findCol(`${state.selectedPeriod} precursorado`);
+    const idxHoras = findCol(`${state.selectedPeriod} horas`);
+    const idxNotas = findCol(`${state.selectedPeriod} notas`);
 
     const publishers = rows
       .slice(2)
@@ -274,11 +296,11 @@ async function handleUpdate(pub, field, value) {
   try {
     const findCol = (name) => state.headers.findIndex(h => h.trim().toLowerCase().includes(name.toLowerCase()));
     let colIdx = -1;
-    if (field === 'participo') colIdx = findCol(`${MONTH} participó`);
-    else if (field === 'cursos') colIdx = findCol(`${MONTH} cursos`);
-    else if (field === 'precursorado') colIdx = findCol(`${MONTH} precursorado`);
-    else if (field === 'horas') colIdx = findCol(`${MONTH} horas`);
-    else if (field === 'notas') colIdx = findCol(`${MONTH} notas`);
+    if (field === 'participo') colIdx = findCol(`${state.selectedPeriod} participó`);
+    else if (field === 'cursos') colIdx = findCol(`${state.selectedPeriod} cursos`);
+    else if (field === 'precursorado') colIdx = findCol(`${state.selectedPeriod} precursorado`);
+    else if (field === 'horas') colIdx = findCol(`${state.selectedPeriod} horas`);
+    else if (field === 'notas') colIdx = findCol(`${state.selectedPeriod} notas`);
 
     if (colIdx === -1) throw new Error(`Columna para ${field} no encontrada`);
 
@@ -371,9 +393,13 @@ function MainHeader() {
           ` : ''}
         </div>
         <div class="h-10 w-px bg-slate-200 mx-2"></div>
-        <div class="text-right hidden sm:block">
-          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Periodo</p>
-          <p class="text-sm font-bold text-slate-700">${MONTH}</p>
+        <div class="flex flex-col text-right">
+          <label for="period-select" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Periodo</label>
+          <select id="period-select" class="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-indigo-505 focus:border-indigo-500 outline-none cursor-pointer transition-all">
+            ${PERIODS.map(p => `
+              <option value="${p.value}" ${state.selectedPeriod === p.value ? 'selected' : ''}>${p.value}</option>
+            `).join('')}
+          </select>
         </div>
         <button id="logout-btn" class="p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 rounded-lg">
           <i data-lucide="log-out" class="w-5 h-5"></i>
@@ -385,6 +411,7 @@ function MainHeader() {
 
 function MainView() {
   const currentGroup = state.groupNumber.toString();
+  const isPeriodEditable = PERIODS.find(p => p.value === state.selectedPeriod)?.isEditable ?? false;
   const groupData = state.data.filter(p => {
     const norm = p.grupo.toString().trim();
     const isCurrentGroup = norm === currentGroup || norm === `${currentGroup}.0` || norm.toLowerCase() === `grupo ${currentGroup}`;
@@ -426,7 +453,9 @@ function MainView() {
         </div>
 
         <div class="flex-grow overflow-y-auto">
-          ${groupData.map((pub, idx) => `
+          ${groupData.map((pub, idx) => {
+            const isPeriodEditable = PERIODS.find(p => p.value === state.selectedPeriod)?.isEditable ?? false;
+            return `
             <!-- Desktop Row -->
             <div data-pub-id="${pub.id}" class="hidden md:grid grid-cols-12 border-b border-slate-100 hover:bg-indigo-50/20 transition-colors items-center min-h-[3.5rem] ${idx % 2 === 1 ? 'bg-slate-50/30' : ''}">
               <div class="col-span-3 px-8 font-semibold text-sm text-slate-700">${pub.nombre}</div>
@@ -436,7 +465,7 @@ function MainView() {
                   type="checkbox" 
                   class="participo-check w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-30"
                   ${pub.participo ? 'checked' : ''}
-                  ${state.saving === `${pub.id}-participo` ? 'disabled' : ''}
+                  ${(state.saving === `${pub.id}-participo` || !isPeriodEditable) ? 'disabled' : ''}
                 />
               </div>
 
@@ -446,14 +475,14 @@ function MainView() {
                   class="cursos-input w-full text-center bg-transparent border border-transparent hover:border-slate-200 focus:border-indigo-400 focus:ring-0 rounded-lg py-1 text-sm outline-none transition-all ${pub.cursos === 0 ? 'opacity-30' : ''}"
                   value="${pub.cursos}"
                   min="0"
-                  ${state.saving === `${pub.id}-cursos` ? 'disabled' : ''}
+                  ${(state.saving === `${pub.id}-cursos` || !isPeriodEditable) ? 'disabled' : ''}
                 />
               </div>
 
               <div class="col-span-2 px-4 text-center">
                 <select 
-                  class="precursorado-select bg-slate-100 text-[10px] font-bold border-none rounded-lg px-3 py-1.5 appearance-none uppercase cursor-pointer text-slate-600 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full"
-                  ${state.saving === `${pub.id}-precursorado` ? 'disabled' : ''}
+                  class="precursorado-select bg-slate-100 text-[10px] font-bold border-none rounded-lg px-3 py-1.5 appearance-none uppercase cursor-pointer text-slate-600 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full disabled:opacity-50"
+                  ${(state.saving === `${pub.id}-precursorado` || !isPeriodEditable) ? 'disabled' : ''}
                 >
                   <option value="" ${pub.precursorado === '' ? 'selected' : ''}></option>
                   <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Auxiliar 15 hs</option>
@@ -477,7 +506,7 @@ function MainView() {
                       disabled:opacity-30 disabled:cursor-not-allowed"
                       value="${pub.horas}"
                       min="0"
-                      ${state.saving === `${pub.id}-horas` ? 'disabled' : ''}
+                      ${(state.saving === `${pub.id}-horas` || !isPeriodEditable) ? 'disabled' : ''}
                     />
                   `;
                 })() : ''}
@@ -489,7 +518,7 @@ function MainView() {
                   class="notas-input w-full bg-transparent border-none text-xs text-slate-500 placeholder-slate-300 focus:ring-0 focus:text-slate-900 transition-all italic hover:bg-slate-50 rounded px-2 py-1"
                   value="${pub.notas}"
                   placeholder="Añadir nota..."
-                  ${state.saving === `${pub.id}-notas` ? 'disabled' : ''}
+                  ${(state.saving === `${pub.id}-notas` || !isPeriodEditable) ? 'disabled' : ''}
                 />
               </div>
             </div>
@@ -507,7 +536,7 @@ function MainView() {
                     type="checkbox" 
                     class="participo-check w-6 h-6 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-30"
                     ${pub.participo ? 'checked' : ''}
-                    ${state.saving === `${pub.id}-participo` ? 'disabled' : ''}
+                    ${(state.saving === `${pub.id}-participo` || !isPeriodEditable) ? 'disabled' : ''}
                   />
                 </div>
 
@@ -515,10 +544,10 @@ function MainView() {
                   <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Cursos</label>
                   <input 
                     type="number" 
-                    class="cursos-input w-full bg-white border border-slate-200 rounded-xl h-11 px-3 text-sm font-bold text-center"
+                    class="cursos-input w-full bg-white border border-slate-200 rounded-xl h-11 px-3 text-sm font-bold text-center disabled:opacity-50"
                     value="${pub.cursos}"
                     min="0"
-                    ${state.saving === `${pub.id}-cursos` ? 'disabled' : ''}
+                    ${(state.saving === `${pub.id}-cursos` || !isPeriodEditable) ? 'disabled' : ''}
                   />
                 </div>
               </div>
@@ -527,8 +556,8 @@ function MainView() {
                 <div class="relative">
                   <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Precursorado</label>
                   <select 
-                    class="precursorado-select w-full bg-white border border-slate-200 rounded-xl h-11 px-3 text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500/20 appearance-none"
-                    ${state.saving === `${pub.id}-precursorado` ? 'disabled' : ''}
+                    class="precursorado-select w-full bg-white border border-slate-200 rounded-xl h-11 px-3 text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500/20 appearance-none disabled:opacity-50"
+                    ${(state.saving === `${pub.id}-precursorado` || !isPeriodEditable) ? 'disabled' : ''}
                   >
                     <option value="" ${pub.precursorado === '' ? 'selected' : ''}>Ninguno</option>
                     <option value="Auxiliar 15 hs" ${pub.precursorado === 'Auxiliar 15 hs' ? 'selected' : ''}>Auxiliar 15 hs</option>
@@ -552,7 +581,7 @@ function MainView() {
                         disabled:opacity-30"
                         value="${pub.horas}"
                         min="0"
-                        ${state.saving === `${pub.id}-horas` ? 'disabled' : ''}
+                        ${(state.saving === `${pub.id}-horas` || !isPeriodEditable) ? 'disabled' : ''}
                       />
                     `;
                   })() : ''}
@@ -562,14 +591,15 @@ function MainView() {
               <div class="relative">
                 <label class="absolute -top-2 left-3 bg-white px-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Notas</label>
                 <textarea 
-                  class="notas-input w-full bg-white border border-slate-200 rounded-xl p-3 pt-4 text-xs text-slate-600 italic focus:ring-2 focus:ring-indigo-500/20"
+                  class="notas-input w-full bg-white border border-slate-200 rounded-xl p-3 pt-4 text-xs text-slate-600 italic focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
                   rows="2"
                   placeholder="..."
-                  ${state.saving === `${pub.id}-notas` ? 'disabled' : ''}
+                  ${(state.saving === `${pub.id}-notas` || !isPeriodEditable) ? 'disabled' : ''}
                 >${pub.notas}</textarea>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
 
         <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 font-medium gap-2">
@@ -586,8 +616,13 @@ function MainView() {
               <span class="flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Guardando...</span>
             ` : ''}
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-green-500"></span>
-              <span>Los cambios se guardan automáticamente</span>
+              ${isPeriodEditable ? `
+                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                <span>Los cambios se guardan automáticamente</span>
+              ` : `
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span>Mes histórico: sólo lectura</span>
+              `}
             </div>
           </div>
         </div>
@@ -686,6 +721,12 @@ function render() {
   $('#login-btn').on('click', login);
   $('#logout-btn').on('click', logout);
   $('#reload-btn').on('click', loadData);
+  
+  $('#period-select').on('change', function() {
+    const newVal = $(this).val();
+    setState({ selectedPeriod: newVal });
+    loadData();
+  });
   
   $('#search-input').on('keydown', function(e) {
     if (e.key === 'Enter') {
