@@ -5,17 +5,29 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googlea
 
 // Spanish months generator helper for Spanish periods (of the last 6 months starting from last month)
 function getPeriods() {
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const fullMonths = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const shortMonths = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const altShortMonths = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
   const periods = [];
   const now = new Date();
   
   for (let i = 1; i <= 6; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthName = months[d.getMonth()];
-    const yearNumber = d.getFullYear() % 100;
-    const label = `${monthName} ${yearNumber}`;
+    const fullMonthName = fullMonths[d.getMonth()];
+    const shortMonthName = shortMonths[d.getMonth()];
+    const altShortMonthName = altShortMonths[d.getMonth()];
+    const fullYear = d.getFullYear();
+    const shortYear = fullYear % 100;
+
+    const value = `${fullMonthName} ${fullYear}`;
+    const prefix = `${shortMonthName} ${shortYear}`;
+    const altPrefix = `${altShortMonthName} ${shortYear}`;
+
     periods.push({
-      value: label,
+      value: value,
+      label: value,
+      prefix: prefix,
+      altPrefix: altPrefix,
       isEditable: i === 1,
     });
   }
@@ -30,37 +42,39 @@ const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleuser
 
 // Configuration for S-21-S Tarjetas Publicador (24 months for 2025 and 2026 Service Years)
 const MONTH_CONFIGS = [
-  { prefix: 'Set 24', altPrefix: 'Sep 24', label: 'Septiembre', year: 2024, serviceYear: 2025, index: 0, key: '2024-09' },
-  { prefix: 'Oct 24', altPrefix: 'Oct 24', label: 'Octubre', year: 2024, serviceYear: 2025, index: 1, key: '2024-10' },
-  { prefix: 'Nov 24', altPrefix: 'Nov 24', label: 'Noviembre', year: 2024, serviceYear: 2025, index: 2, key: '2024-11' },
-  { prefix: 'Dic 24', altPrefix: 'Dic 24', label: 'Diciembre', year: 2024, serviceYear: 2025, index: 3, key: '2024-12' },
-  { prefix: 'Ene 25', altPrefix: 'Ene 25', label: 'Enero', year: 2025, serviceYear: 2025, index: 4, key: '2025-01' },
-  { prefix: 'Feb 25', altPrefix: 'Feb 25', label: 'Febrero', year: 2025, serviceYear: 2025, index: 5, key: '2025-02' },
-  { prefix: 'Mar 25', altPrefix: 'Mar 25', label: 'Marzo', year: 2025, serviceYear: 2025, index: 6, key: '2025-03' },
-  { prefix: 'Abr 25', altPrefix: 'Abr 25', label: 'Abril', year: 2025, serviceYear: 2025, index: 7, key: '2025-04' },
-  { prefix: 'May 25', altPrefix: 'May 25', label: 'Mayo', year: 2025, serviceYear: 2025, index: 8, key: '2025-05' },
-  { prefix: 'Jun 25', altPrefix: 'Jun 25', label: 'Junio', year: 2025, serviceYear: 2025, index: 9, key: '2025-06' },
-  { prefix: 'Jul 25', altPrefix: 'Jul 25', label: 'Julio', year: 2025, serviceYear: 2025, index: 10, key: '2025-07' },
-  { prefix: 'Ago 25', altPrefix: 'Ago 25', label: 'Agosto', year: 2025, serviceYear: 2025, index: 11, key: '2025-08' },
+  { prefix: 'Set 24', altPrefix: 'Sep 24', shortLabel: 'Set 24', label: 'Septiembre', year: 2024, serviceYear: 2025, index: 0, key: '2024-09' },
+  { prefix: 'Oct 24', altPrefix: 'Oct 24', shortLabel: 'Oct 24', label: 'Octubre', year: 2024, serviceYear: 2025, index: 1, key: '2024-10' },
+  { prefix: 'Nov 24', altPrefix: 'Nov 24', shortLabel: 'Nov 24', label: 'Noviembre', year: 2024, serviceYear: 2025, index: 2, key: '2024-11' },
+  { prefix: 'Dic 24', altPrefix: 'Dic 24', shortLabel: 'Dic 24', label: 'Diciembre', year: 2024, serviceYear: 2025, index: 3, key: '2024-12' },
+  { prefix: 'Ene 25', altPrefix: 'Ene 25', shortLabel: 'Ene 25', label: 'Enero', year: 2025, serviceYear: 2025, index: 4, key: '2025-01' },
+  { prefix: 'Feb 25', altPrefix: 'Feb 25', shortLabel: 'Feb 25', label: 'Febrero', year: 2025, serviceYear: 2025, index: 5, key: '2025-02' },
+  { prefix: 'Mar 25', altPrefix: 'Mar 25', shortLabel: 'Mar 25', label: 'Marzo', year: 2025, serviceYear: 2025, index: 6, key: '2025-03' },
+  { prefix: 'Abr 25', altPrefix: 'Abr 25', shortLabel: 'Abr 25', label: 'Abril', year: 2025, serviceYear: 2025, index: 7, key: '2025-04' },
+  { prefix: 'May 25', altPrefix: 'May 25', shortLabel: 'May 25', label: 'Mayo', year: 2025, serviceYear: 2025, index: 8, key: '2025-05' },
+  { prefix: 'Jun 25', altPrefix: 'Jun 25', shortLabel: 'Jun 25', label: 'Junio', year: 2025, serviceYear: 2025, index: 9, key: '2025-06' },
+  { prefix: 'Jul 25', altPrefix: 'Jul 25', shortLabel: 'Jul 25', label: 'Julio', year: 2025, serviceYear: 2025, index: 10, key: '2025-07' },
+  { prefix: 'Ago 25', altPrefix: 'Ago 25', shortLabel: 'Ago 25', label: 'Agosto', year: 2025, serviceYear: 2025, index: 11, key: '2025-08' },
 
-  { prefix: 'Sep 25', altPrefix: 'Set 25', label: 'Septiembre', year: 2025, serviceYear: 2026, index: 0, key: '2025-09' },
-  { prefix: 'Oct 25', altPrefix: 'Oct 25', label: 'Octubre', year: 2025, serviceYear: 2026, index: 1, key: '2025-10' },
-  { prefix: 'Nov 25', altPrefix: 'Nov 25', label: 'Noviembre', year: 2025, serviceYear: 2026, index: 2, key: '2025-11' },
-  { prefix: 'Dic 25', altPrefix: 'Dic 25', label: 'Diciembre', year: 2025, serviceYear: 2026, index: 3, key: '2025-12' },
-  { prefix: 'Ene 26', altPrefix: 'Ene 26', label: 'Enero', year: 2026, serviceYear: 2026, index: 4, key: '2026-01' },
-  { prefix: 'Feb 26', altPrefix: 'Feb 26', label: 'Febrero', year: 2026, serviceYear: 2026, index: 5, key: '2026-02' },
-  { prefix: 'Mar 26', altPrefix: 'Mar 26', label: 'Marzo', year: 2026, serviceYear: 2026, index: 6, key: '2026-03' },
-  { prefix: 'Abr 26', altPrefix: 'Abr 26', label: 'Abril', year: 2026, serviceYear: 2026, index: 7, key: '2026-04' },
-  { prefix: 'May 26', altPrefix: 'May 26', label: 'Mayo', year: 2026, serviceYear: 2026, index: 8, key: '2026-05' },
-  { prefix: 'Jun 26', altPrefix: 'Jun 26', label: 'Junio', year: 2026, serviceYear: 2026, index: 9, key: '2026-06' },
-  { prefix: 'Jul 26', altPrefix: 'Jul 26', label: 'Julio', year: 2026, serviceYear: 2026, index: 10, key: '2026-07' },
-  { prefix: 'Ago 26', altPrefix: 'Ago 26', label: 'Agosto', year: 2026, serviceYear: 2026, index: 11, key: '2026-08' },
+  { prefix: 'Sep 25', altPrefix: 'Set 25', shortLabel: 'Sep 25', label: 'Septiembre', year: 2025, serviceYear: 2026, index: 0, key: '2025-09' },
+  { prefix: 'Oct 25', altPrefix: 'Oct 25', shortLabel: 'Oct 25', label: 'Octubre', year: 2025, serviceYear: 2026, index: 1, key: '2025-10' },
+  { prefix: 'Nov 25', altPrefix: 'Nov 25', shortLabel: 'Nov 25', label: 'Noviembre', year: 2025, serviceYear: 2026, index: 2, key: '2025-11' },
+  { prefix: 'Dic 25', altPrefix: 'Dic 25', shortLabel: 'Dic 25', label: 'Diciembre', year: 2025, serviceYear: 2026, index: 3, key: '2025-12' },
+  { prefix: 'Ene 26', altPrefix: 'Ene 26', shortLabel: 'Ene 26', label: 'Enero', year: 2026, serviceYear: 2026, index: 4, key: '2026-01' },
+  { prefix: 'Feb 26', altPrefix: 'Feb 26', shortLabel: 'Feb 26', label: 'Febrero', year: 2026, serviceYear: 2026, index: 5, key: '2026-02' },
+  { prefix: 'Mar 26', altPrefix: 'Mar 26', shortLabel: 'Mar 26', label: 'Marzo', year: 2026, serviceYear: 2026, index: 6, key: '2026-03' },
+  { prefix: 'Abr 26', altPrefix: 'Abr 26', shortLabel: 'Abr 26', label: 'Abril', year: 2026, serviceYear: 2026, index: 7, key: '2026-04' },
+  { prefix: 'May 26', altPrefix: 'May 26', shortLabel: 'May 26', label: 'Mayo', year: 2026, serviceYear: 2026, index: 8, key: '2026-05' },
+  { prefix: 'Jun 26', altPrefix: 'Jun 26', shortLabel: 'Jun 26', label: 'Junio', year: 2026, serviceYear: 2026, index: 9, key: '2026-06' },
+  { prefix: 'Jul 26', altPrefix: 'Jul 26', shortLabel: 'Jul 26', label: 'Julio', year: 2026, serviceYear: 2026, index: 10, key: '2026-07' },
+  { prefix: 'Ago 26', altPrefix: 'Ago 26', shortLabel: 'Ago 26', label: 'Agosto', year: 2026, serviceYear: 2026, index: 11, key: '2026-08' },
 ];
+
+const initialGroupNumber = localStorage.getItem('group_number') ? parseInt(localStorage.getItem('group_number'), 10) : 1;
 
 let state = {
   accessToken: localStorage.getItem('sheets_access_token'),
   userEmail: localStorage.getItem('user_email'),
-  groupNumber: localStorage.getItem('group_number') || 1,
+  groupNumber: initialGroupNumber,
   selectedPeriod: DEFAULT_PERIOD,
   currentView: window.location.hash === '#cards' ? 'cards' : 'table',
   fetchingInfo: false,
@@ -72,16 +86,17 @@ let state = {
   searchTerm: "",
   saving: null,
   // Tarjetas view state
-  cardsSelectedGroup: 'all',
+  cardsSelectedGroup: initialGroupNumber,
   cardsSearchTerm: "",
   cardsSelectedPubId: "",
   cardsServiceYear: 2026,
-  cardsEditingPub: null,
-  cardsModalMonthKey: '2025-09',
 };
 
 // --- Google Sheets Service Logic ---
 async function fetchWithAuth(url, options = {}) {
+  if (!state.accessToken) {
+    throw new Error('401: Sesión expirada o no autenticado');
+  }
   const headers = {
     ...options.headers,
     Authorization: `Bearer ${state.accessToken}`,
@@ -89,7 +104,13 @@ async function fetchWithAuth(url, options = {}) {
   };
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
-    const error = await response.json();
+    if (response.status === 401) {
+      localStorage.removeItem('sheets_access_token');
+      localStorage.removeItem('user_email');
+      state.accessToken = null;
+      state.userEmail = null;
+    }
+    const error = await response.json().catch(() => ({}));
     const message = error.error?.message || 'Error de la API de Google Sheets';
     throw new Error(`${response.status}: ${message}`);
   }
@@ -245,11 +266,27 @@ async function loadData() {
     // Table view columns
     const idxNombre = findCol('publicador');
     const idxGrupo = findCol('grupo');
-    const idxParticipo = findCol(`${state.selectedPeriod} participó`);
-    const idxCursos = findCol(`${state.selectedPeriod} cursos`);
-    const idxPrecursorado = findCol(`${state.selectedPeriod} precursorado`);
-    const idxHoras = findCol(`${state.selectedPeriod} horas`);
-    const idxNotas = findCol(`${state.selectedPeriod} notas`);
+
+    const selectedPeriodObj = PERIODS.find(p => p.value === state.selectedPeriod) || PERIODS[0];
+    const periodPrefix = selectedPeriodObj ? selectedPeriodObj.prefix : state.selectedPeriod;
+    const periodAltPrefix = selectedPeriodObj ? selectedPeriodObj.altPrefix : null;
+
+    const findPeriodCol = (suffix) => {
+      let idx = findCol(`${periodPrefix} ${suffix}`);
+      if (idx === -1 && periodAltPrefix) {
+        idx = findCol(`${periodAltPrefix} ${suffix}`);
+      }
+      if (idx === -1) {
+        idx = findCol(`${state.selectedPeriod} ${suffix}`);
+      }
+      return idx;
+    };
+
+    const idxParticipo = findPeriodCol('participó');
+    const idxCursos = findPeriodCol('cursos');
+    const idxPrecursorado = findPeriodCol('precursorado');
+    const idxHoras = findPeriodCol('horas');
+    const idxNotas = findPeriodCol('notas');
 
     const publishers = rows
       .slice(2)
@@ -271,6 +308,7 @@ async function loadData() {
     const idxNacimiento = findCol('nacimiento');
     const idxBautismo = findCol('bautismo');
     const idxGender = findCol('h/m');
+    const idxEsperanza = findCol('esperanza');
     const idxNombramiento = findCol('nombramiento');
     const idxFamilia = findCol('familia');
 
@@ -286,6 +324,7 @@ async function loadData() {
         const birthVal = idxNacimiento !== -1 ? (row[idxNacimiento] || '').toString().trim() : '';
         const baptismVal = idxBautismo !== -1 ? (row[idxBautismo] || '').toString().trim() : '';
         const genderVal = idxGender !== -1 ? (row[idxGender] || '').toString().trim().toUpperCase() : 'M';
+        const hopeVal = idxEsperanza !== -1 ? (row[idxEsperanza] || '').toString().trim() : '';
         const nombVal = idxNombramiento !== -1 ? (row[idxNombramiento] || '').toString().trim().toUpperCase() : '';
         const familyVal = idxFamilia !== -1 ? (row[idxFamilia] || '').toString().trim() : '';
 
@@ -356,7 +395,7 @@ async function loadData() {
           gender: genderVal === 'H' ? 'H' : 'M',
           appointment,
           family: familyVal,
-          hope: 'Otras ovejas',
+          hope: hopeVal || 'Otras ovejas',
           monthlyData,
           colIndices: {
             nombre: idxNombre,
@@ -365,6 +404,7 @@ async function loadData() {
             nacimiento: idxNacimiento,
             bautismo: idxBautismo,
             h_m: idxGender,
+            esperanza: idxEsperanza,
             nombramiento: idxNombramiento,
             familia: idxFamilia,
           }
@@ -389,10 +429,12 @@ async function loadData() {
   } catch (err) {
     console.error(err);
     const friendlyMsg = getFriendlyError(err);
-    if (friendlyMsg.includes('Sesión expirada')) {
+    if (friendlyMsg.includes('Sesión expirada') || (err.message && err.message.includes('401'))) {
       logout();
+      setState({ error: 'Sesión expirada o inválida. Por favor vuelva a conectar con Google.', loading: false });
+    } else {
+      setState({ error: friendlyMsg, loading: false });
     }
-    setState({ error: friendlyMsg, loading: false });
   }
 }
 
@@ -450,6 +492,7 @@ function login() {
           setState({ 
             userEmail: email, 
             groupNumber: groupNumber,
+            cardsSelectedGroup: groupNumber,
             fetchingInfo: false
           });
           loadData();
@@ -475,7 +518,7 @@ function logout() {
   localStorage.removeItem('sheets_access_token');
   localStorage.removeItem('user_email');
   localStorage.removeItem('group_number');
-  setState({ accessToken: null, userEmail: null, groupNumber: 1, data: [], fullPublishers: [], headers: [] });
+  setState({ accessToken: null, userEmail: null, groupNumber: 1, cardsSelectedGroup: 1, data: [], fullPublishers: [], headers: [] });
 }
 
 async function handleUpdate(pub, field, value) {
@@ -483,13 +526,27 @@ async function handleUpdate(pub, field, value) {
   setState({ saving: saveKey });
   
   try {
-    const findCol = (name) => state.headers.findIndex(h => h.trim().toLowerCase().includes(name.toLowerCase()));
+    const selectedPeriodObj = PERIODS.find(p => p.value === state.selectedPeriod) || PERIODS[0];
+    const periodPrefix = selectedPeriodObj ? selectedPeriodObj.prefix : state.selectedPeriod;
+    const periodAltPrefix = selectedPeriodObj ? selectedPeriodObj.altPrefix : null;
+
+    const findColForPeriod = (suffix) => {
+      let idx = state.headers.findIndex(h => (h || '').trim().toLowerCase().includes(`${periodPrefix} ${suffix}`.toLowerCase()));
+      if (idx === -1 && periodAltPrefix) {
+        idx = state.headers.findIndex(h => (h || '').trim().toLowerCase().includes(`${periodAltPrefix} ${suffix}`.toLowerCase()));
+      }
+      if (idx === -1) {
+        idx = state.headers.findIndex(h => (h || '').trim().toLowerCase().includes(`${state.selectedPeriod} ${suffix}`.toLowerCase()));
+      }
+      return idx;
+    };
+
     let colIdx = -1;
-    if (field === 'participo') colIdx = findCol(`${state.selectedPeriod} participó`);
-    else if (field === 'cursos') colIdx = findCol(`${state.selectedPeriod} cursos`);
-    else if (field === 'precursorado') colIdx = findCol(`${state.selectedPeriod} precursorado`);
-    else if (field === 'horas') colIdx = findCol(`${state.selectedPeriod} horas`);
-    else if (field === 'notas') colIdx = findCol(`${state.selectedPeriod} notas`);
+    if (field === 'participo') colIdx = findColForPeriod('participó');
+    else if (field === 'cursos') colIdx = findColForPeriod('cursos');
+    else if (field === 'precursorado') colIdx = findColForPeriod('precursorado');
+    else if (field === 'horas') colIdx = findColForPeriod('horas');
+    else if (field === 'notas') colIdx = findColForPeriod('notas');
 
     if (colIdx === -1) throw new Error(`Columna para ${field} no encontrada`);
 
@@ -529,7 +586,7 @@ function LoginView() {
         <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <i data-lucide="file-spreadsheet" class="w-8 h-8"></i>
         </div>
-        <h1 class="text-2xl font-bold text-slate-900 mb-2">Shangrilá Informes</h1>
+        <h1 class="text-2xl font-bold text-slate-900 mb-2">Informes de Servicio</h1>
         <p class="text-slate-500 mb-8">Conecte con Google Sheets para gestionar los informes de servicio y las tarjetas de publicador.</p>
         
         ${state.error ? `
@@ -556,50 +613,49 @@ function LoginView() {
 function MainHeader() {
   const currentGroup = state.groupNumber.toString();
   return `
-    <header class="h-20 bg-white border-b border-slate-200 px-4 sm:px-10 flex items-center justify-between flex-shrink-0 print:hidden">
-      <div class="flex items-center gap-4">
-        ${state.fetchingInfo ? `
-          <div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center ring-4 ring-slate-50 animate-pulse">
-            <div class="w-4 h-4 bg-slate-200 rounded"></div>
-          </div>
-        ` : `
-          <div class="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-xl ring-4 ring-indigo-50">${currentGroup}</div>
-        `}
-        <div>
-          <h1 class="text-xl font-bold tracking-tight">Shangrilá Informes</h1>
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-10 py-3 sm:py-0 sm:h-20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 flex-shrink-0 print:hidden">
+      <!-- Top Row on Mobile: Group Badge + Title & Subtitle on Left, Logout on Right -->
+      <div class="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+        <div class="flex items-center gap-3 sm:gap-4">
           ${state.fetchingInfo ? `
-            <div class="h-3 w-24 bg-slate-100 rounded mt-1 animate-pulse"></div>
+            <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center ring-4 ring-slate-50 animate-pulse">
+              <div class="w-4 h-4 bg-slate-200 rounded"></div>
+            </div>
           ` : `
-            <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Grupo ${currentGroup} • Shangrilá</p>
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl ring-4 ring-indigo-50">${currentGroup}</div>
           `}
+          <div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 leading-tight">Informes de Servicio</h1>
+            ${state.fetchingInfo ? `
+              <div class="h-3 w-24 bg-slate-100 rounded mt-1 animate-pulse"></div>
+            ` : `
+              <p class="text-[11px] sm:text-xs text-slate-500 uppercase tracking-widest font-semibold">Grupo ${currentGroup} • Shangrilá</p>
+            `}
+          </div>
         </div>
+
+        <!-- Mobile Logout button -->
+        <button class="logout-btn sm:hidden p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 rounded-xl cursor-pointer" title="Cerrar sesión">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
       </div>
 
-      <div class="flex items-center gap-2 sm:gap-4">
-        <!-- View Navigation Buttons -->
-        <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
-          <button id="view-table-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${state.currentView === 'table' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
+      <!-- Navigation buttons (Informes / Tarjetas) below title on mobile, right side on desktop -->
+      <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
+        <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 w-full sm:w-auto">
+          <button id="view-table-btn" class="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${state.currentView === 'table' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
             <i data-lucide="table" class="w-4 h-4"></i>
-            <span class="hidden sm:inline">Informes</span>
+            <span>Informes</span>
           </button>
-          <button id="view-cards-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${state.currentView === 'cards' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
+          <button id="view-cards-btn" class="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${state.currentView === 'cards' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
             <i data-lucide="contact" class="w-4 h-4"></i>
-            <span>Tarjetas Publicador</span>
+            <span class="sm:hidden">Tarjetas</span>
+            <span class="hidden sm:inline">Tarjetas Publicador</span>
           </button>
         </div>
 
-        ${state.currentView === 'table' ? `
-          <div class="flex flex-col text-right">
-            <label for="period-select" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Periodo</label>
-            <select id="period-select" class="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none cursor-pointer transition-all">
-              ${PERIODS.map(p => `
-                <option value="${p.value}" ${state.selectedPeriod === p.value ? 'selected' : ''}>${p.value}</option>
-              `).join('')}
-            </select>
-          </div>
-        ` : ''}
-
-        <button id="logout-btn" class="p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 rounded-lg cursor-pointer" title="Cerrar sesión">
+        <!-- Desktop Logout button -->
+        <button class="logout-btn hidden sm:flex p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 rounded-xl cursor-pointer" title="Cerrar sesión">
           <i data-lucide="log-out" class="w-5 h-5"></i>
         </button>
       </div>
@@ -630,11 +686,39 @@ function TableView() {
   const regulares = groupData.filter(p => p.precursorado.toLowerCase() === 'regular').length;
 
   return `
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-10 py-6 flex-shrink-0">
-      ${StatCard("Publicadores", groupData.length)}
-      ${StatCard("Activos", activos)}
-      ${StatCard("Auxiliares", auxiliares)}
-      ${StatCard("Regulares", regulares)}
+    <!-- Compact Período & Resumen Bar -->
+    <div class="px-4 sm:px-10 pt-4 pb-3 flex-shrink-0">
+      <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Period Selector -->
+        <div class="flex items-center gap-2.5">
+          <label for="period-select" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Período:</label>
+          <select id="period-select" class="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none cursor-pointer transition-all">
+            ${PERIODS.map(p => `
+              <option value="${p.value}" ${state.selectedPeriod === p.value ? 'selected' : ''}>${p.value}</option>
+            `).join('')}
+          </select>
+        </div>
+
+        <!-- Compact Summary Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 text-xs border-t md:border-t-0 border-slate-100 pt-2 md:pt-0">
+          <div class="bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2">
+            <span class="text-slate-500 font-bold text-[10px] uppercase tracking-wider">Publicadores</span>
+            <span class="font-extrabold text-slate-900 text-sm">${groupData.length}</span>
+          </div>
+          <div class="bg-emerald-50/50 border border-emerald-200/60 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2">
+            <span class="text-emerald-700 font-bold text-[10px] uppercase tracking-wider">Activos</span>
+            <span class="font-extrabold text-emerald-700 text-sm">${activos}</span>
+          </div>
+          <div class="bg-indigo-50/50 border border-indigo-200/60 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2">
+            <span class="text-indigo-700 font-bold text-[10px] uppercase tracking-wider">Auxiliares</span>
+            <span class="font-extrabold text-indigo-700 text-sm">${auxiliares}</span>
+          </div>
+          <div class="bg-amber-50/50 border border-amber-200/60 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2">
+            <span class="text-amber-700 font-bold text-[10px] uppercase tracking-wider">Regulares</span>
+            <span class="font-extrabold text-amber-700 text-sm">${regulares}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <main class="px-4 sm:px-10 flex-grow flex flex-col min-h-0 pb-8">
@@ -664,14 +748,22 @@ function TableView() {
           <div class="col-span-2 text-center">Cursos Bíblicos</div>
           <div class="col-span-2 text-center">Precursorado</div>
           <div class="col-span-2 text-center">Horas</div>
-          <div class="col-span-2 px-4">Notas / Observaciones</div>
+          <div class="col-span-2 px-4">Notas</div>
         </div>
 
         <div class="flex-grow overflow-y-auto">
           ${groupData.map((pub, idx) => `
             <!-- Desktop Row -->
             <div data-pub-id="${pub.id}" class="hidden md:grid grid-cols-12 border-b border-slate-100 hover:bg-indigo-50/20 transition-colors items-center min-h-[3.5rem] ${idx % 2 === 1 ? 'bg-slate-50/30' : ''}">
-              <div class="col-span-3 px-8 font-semibold text-sm text-slate-700">${pub.nombre}</div>
+              <div class="col-span-3 px-8 font-semibold text-sm">
+                <button 
+                  data-pub-row="${pub.rowIndex}" 
+                  data-pub-name="${pub.nombre}" 
+                  class="open-card-btn text-left font-semibold text-slate-800 hover:text-indigo-600 hover:underline cursor-pointer focus:outline-none transition-colors"
+                >
+                  ${pub.nombre}
+                </button>
+              </div>
               
               <div class="col-span-1 flex justify-center">
                 <input 
@@ -736,7 +828,13 @@ function TableView() {
             <!-- Mobile Card -->
             <div data-pub-id="${pub.id}" class="md:hidden p-4 border-b border-slate-100 space-y-4">
               <div class="flex justify-between items-center">
-                <span class="font-bold text-slate-800 text-base">${pub.nombre}</span>
+                <button 
+                  data-pub-row="${pub.rowIndex}" 
+                  data-pub-name="${pub.nombre}" 
+                  class="open-card-btn text-left font-bold text-slate-800 hover:text-indigo-600 hover:underline text-base cursor-pointer focus:outline-none transition-colors"
+                >
+                  ${pub.nombre}
+                </button>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-slate-400 font-medium">Participó:</span>
                   <input 
@@ -867,13 +965,13 @@ function CardsView() {
   // Tabs definitions
   const tabs = [
     { id: 'all', label: 'Todos' },
-    { id: 1, label: 'G1' },
-    { id: 2, label: 'G2' },
-    { id: 3, label: 'G3' },
-    { id: 4, label: 'G4' },
-    { id: 5, label: 'G5' },
-    { id: 6, label: 'G6' },
-    { id: 7, label: 'G7' },
+    { id: 1, label: 'Grupo 1' },
+    { id: 2, label: 'Grupo 2' },
+    { id: 3, label: 'Grupo 3' },
+    { id: 4, label: 'Grupo 4' },
+    { id: 5, label: 'Grupo 5' },
+    { id: 6, label: 'Grupo 6' },
+    { id: 7, label: 'Grupo 7' },
     { id: 'men', label: 'Varones' },
     { id: 'pioneers', label: 'Precursores' },
   ];
@@ -885,12 +983,33 @@ function CardsView() {
       <!-- Top Controls & Selector Bar (Hidden on Print) -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 mb-6 space-y-4 print:hidden">
         
-        <!-- Filter Tabs -->
+        <!-- Filter Tabs / Dropdown for Mobile -->
         <div class="space-y-1">
           <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             Filtrar por Grupo o Categoría
           </label>
-          <div class="flex flex-wrap gap-1.5 items-center overflow-x-auto pb-1">
+
+          <!-- Mobile Dropdown Select -->
+          <div class="sm:hidden">
+            <select 
+              id="cards-tab-select" 
+              class="cards-tab-select w-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none cursor-pointer"
+            >
+              ${tabs.map(t => {
+                let count = 0;
+                if (t.id === 'all') count = full.length;
+                else if (typeof t.id === 'number') count = full.filter(p => p.grupo === t.id).length;
+                else if (t.id === 'men') count = full.filter(p => p.gender === 'H').length;
+                else if (t.id === 'pioneers') count = full.filter(p => isPioneerInServiceYear(p, selectedYear)).length;
+
+                const isSel = currentTab === t.id;
+                return `<option value="${t.id}" ${isSel ? 'selected' : ''}>${t.label} (${count})</option>`;
+              }).join('')}
+            </select>
+          </div>
+
+          <!-- Desktop Pills -->
+          <div class="hidden sm:flex flex-wrap gap-1.5 items-center overflow-x-auto pb-1">
             ${tabs.map(t => {
               let count = 0;
               if (t.id === 'all') count = full.length;
@@ -914,15 +1033,36 @@ function CardsView() {
           </div>
         </div>
 
-        <!-- Search Bar, Dropdown & Service Year -->
+        <!-- Service Year Selection -->
+        <div class="space-y-1 pt-2 border-t border-slate-200">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Año de Servicio
+          </label>
+          <div class="flex gap-2 items-center max-w-xs">
+            <button
+              id="sy2026-btn"
+              class="flex-1 py-1.5 px-3 text-xs rounded-xl transition-all text-center font-bold cursor-pointer ${selectedYear === 2026 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'}"
+            >
+              Año 2026
+            </button>
+            <button
+              id="sy2025-btn"
+              class="flex-1 py-1.5 px-3 text-xs rounded-xl transition-all text-center font-bold cursor-pointer ${selectedYear === 2025 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'}"
+            >
+              Año 2025
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Bar & Dropdown Selector -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-slate-200 items-center">
           
           <!-- Search input -->
-          <div class="md:col-span-4 relative">
+          <div class="md:col-span-5 relative">
             <input
               type="text"
               id="cards-search-input"
-              placeholder="Buscar por nombre, familia, whatsapp..."
+              placeholder="Buscar por nombre, whatsapp..."
               class="w-full pl-8 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
               value="${state.cardsSearchTerm}"
             />
@@ -933,7 +1073,7 @@ function CardsView() {
           </div>
 
           <!-- Dropdown Select & Prev/Next Buttons -->
-          <div class="md:col-span-5 flex items-center gap-1.5">
+          <div class="md:col-span-7 flex items-center gap-1.5">
             <button
               id="cards-prev-pub-btn"
               class="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
@@ -951,7 +1091,7 @@ function CardsView() {
                 const isSel = selectedPub && p.id === selectedPub.id;
                 const appt = p.appointment ? ` [${p.appointment}]` : '';
                 const prec = isPioneerInServiceYear(p, selectedYear) ? ' ⭐' : '';
-                return `<option value="${p.id}" ${isSel ? 'selected' : ''}>${p.nombre} (G${p.grupo})${appt}${prec}</option>`;
+                return `<option value="${p.id}" ${isSel ? 'selected' : ''}>${p.nombre} (Grupo ${p.grupo})${appt}${prec}</option>`;
               }).join('')}
             </select>
 
@@ -962,22 +1102,6 @@ function CardsView() {
               ${!selectedPub || filtered.findIndex(p => p.id === selectedPub.id) >= filtered.length - 1 ? 'disabled' : ''}
             >
               <i data-lucide="chevron-right" class="w-4 h-4"></i>
-            </button>
-          </div>
-
-          <!-- Service Year Toggle Buttons -->
-          <div class="md:col-span-3 flex justify-end gap-1.5">
-            <button
-              id="sy2026-btn"
-              class="flex-1 py-2 px-2 text-xs rounded-xl transition-all text-center font-bold cursor-pointer ${selectedYear === 2026 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"
-            >
-              Año 2026
-            </button>
-            <button
-              id="sy2025-btn"
-              class="flex-1 py-2 px-2 text-xs rounded-xl transition-all text-center font-bold cursor-pointer ${selectedYear === 2025 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"
-            >
-              Año 2025
             </button>
           </div>
 
@@ -1020,62 +1144,30 @@ function CardsView() {
         return `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 max-w-4xl mx-auto print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none text-slate-900">
             
-            <!-- Top Actions Bar (Hidden on print) -->
-            <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6 print:hidden">
-              <div class="flex items-center gap-2">
-                <span class="bg-indigo-600 text-white font-mono font-bold text-xs px-3 py-1 rounded-lg">
-                  G${selectedPub.grupo}
-                </span>
-                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                  ${selectedPub.family ? `Familia ${selectedPub.family}` : 'Publicador'}
-                </span>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <button id="edit-publisher-card-btn" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                  <span>Editar Registro</span>
-                </button>
-                <button id="print-card-btn" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs">
-                  <i data-lucide="printer" class="w-3.5 h-3.5"></i>
-                  <span>Imprimir S-21-S</span>
-                </button>
-              </div>
-            </div>
-
             <!-- Form Official Header -->
             <div class="border-b-2 border-slate-900 pb-3 mb-4">
-              <div class="flex justify-between items-start">
-                <div>
-                  <h1 class="font-extrabold text-base md:text-lg tracking-tight uppercase text-slate-900">
-                    REGISTRO DE PUBLICADOR DE LA CONGREGACIÓN
-                  </h1>
-                  <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Formulario Oficial de Actividad del Ministerio
-                  </p>
-                </div>
-                <div class="text-right">
-                  <span class="text-xs font-mono font-bold bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-sm">
-                    S-21-S
-                  </span>
-                  <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">
-                    Año de Servicio ${selectedYear}
-                  </div>
-                </div>
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-1 md:gap-0">
+                <h1 class="font-extrabold text-base md:text-lg tracking-tight uppercase text-slate-900">
+                  <span class="md:hidden">REGISTRO DE PUBLICADOR</span>
+                  <span class="hidden md:inline">REGISTRO DE PUBLICADOR DE LA CONGREGACIÓN</span>
+                </h1>
+                <span class="text-xs font-mono font-bold bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-sm text-slate-700">
+                  S-21-S
+                </span>
               </div>
             </div>
 
             <!-- Personal Info Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-5 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-5 text-xs">
               <div>
                 <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Nombre</span>
                 <span class="font-bold text-slate-900 block text-xs md:text-sm truncate">${selectedPub.nombre}</span>
               </div>
 
               <div>
-                <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Familia / Grupo</span>
+                <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Grupo de Servicio</span>
                 <span class="font-semibold text-slate-800 block text-xs">
-                  ${selectedPub.family ? selectedPub.family : '—'} • Grupo ${selectedPub.grupo}
+                  Grupo ${selectedPub.grupo}
                 </span>
               </div>
 
@@ -1105,8 +1197,8 @@ function CardsView() {
 
               <div>
                 <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Precursorado</span>
-                <span class="font-bold block text-xs ${isRegPioneer ? 'text-amber-700' : 'text-slate-700'}">
-                  ${isRegPioneer ? 'Precursor Regular' : 'Publicador'}
+                <span class="block text-xs">
+                  ${isRegPioneer ? '<span class="font-bold text-amber-700">Precursor Regular</span>' : '<span class="text-slate-400 font-normal">—</span>'}
                 </span>
               </div>
 
@@ -1122,55 +1214,106 @@ function CardsView() {
                 <thead>
                   <tr class="bg-slate-900 text-white text-[10px] uppercase font-bold tracking-wider">
                     <th class="py-2.5 px-3 border-r border-slate-700">Mes</th>
-                    <th class="py-2.5 px-2 text-center border-r border-slate-700">Participó</th>
-                    <th class="py-2.5 px-2 text-center border-r border-slate-700">Cursos Bíblicos</th>
-                    <th class="py-2.5 px-3 text-center border-r border-slate-700">Precursorado</th>
-                    <th class="py-2.5 px-3 text-center border-r border-slate-700">Horas</th>
-                    <th class="py-2.5 px-3">Notas / Observaciones</th>
+                    <th class="py-2.5 px-1.5 md:px-2 text-center border-r border-slate-700">
+                      <span class="hidden md:inline">Participó</span>
+                      <span class="md:hidden">Part.</span>
+                    </th>
+                    <th class="py-2.5 px-1.5 md:px-2 text-center border-r border-slate-700">
+                      <span class="hidden md:inline">Cursos Bíblicos</span>
+                      <span class="md:hidden">Cursos</span>
+                    </th>
+                    <th class="py-2.5 px-1.5 md:px-3 text-center border-r border-slate-700">
+                      <span class="hidden md:inline">Precursorado</span>
+                      <span class="md:hidden">Prec.</span>
+                    </th>
+                    <th class="py-2.5 px-2 md:px-3 text-center border-r border-slate-700">Horas</th>
+                    <th class="py-2.5 px-2 md:px-3 text-left hidden md:table-cell">Notas</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
                   ${yearMonths.map(m => {
                     const act = selectedPub.monthlyData[m.key] || {};
                     const hasNotes = act.notes && act.notes.trim() !== '';
-                    const precLabel = act.pioneerType || (act.isAuxiliaryPioneer ? 'Auxiliar 15 hs' : '—');
+
+                    let precFull = '—';
+                    let precShort = '—';
+                    let isPrec = false;
+
+                    if (act.pioneerType || act.isAuxiliaryPioneer) {
+                      isPrec = true;
+                      const pStr = (act.pioneerType || '').toLowerCase().trim();
+                      if (pStr.includes('regular') || pStr === 'reg') {
+                        precFull = 'Precursor Regular';
+                        precShort = 'Reg';
+                      } else if (pStr.includes('30')) {
+                        precFull = 'Auxiliar 30 hs';
+                        precShort = 'Aux 30';
+                      } else if (pStr.includes('15') || pStr.includes('auxiliar') || act.isAuxiliaryPioneer) {
+                        precFull = 'Auxiliar 15 hs';
+                        precShort = 'Aux 15';
+                      } else {
+                        precFull = act.pioneerType || 'Auxiliar';
+                        precShort = act.pioneerType || 'Aux';
+                      }
+                    }
                     
                     return `
                       <tr class="hover:bg-slate-50 transition-colors">
                         <td class="py-2.5 px-3 font-bold text-slate-900 border-r border-slate-200">
-                          <span class="hidden md:inline">${m.label} ${m.year}</span>
-                          <span class="md:hidden">${m.shortLabel}</span>
+                          <span class="hidden md:inline print:inline">${m.label || act.monthLabel || ''} ${m.year || act.year || ''}</span>
+                          <span class="md:hidden print:hidden">${m.shortLabel || m.prefix || act.shortLabel || m.label || ''}</span>
                         </td>
 
-                        <td class="py-2.5 px-2 text-center border-r border-slate-200 font-bold">
+                        <td class="py-2.5 px-1.5 md:px-2 text-center border-r border-slate-200">
                           ${act.participated
                             ? '<span class="text-emerald-700 font-extrabold text-sm">✓</span>'
-                            : '<span class="text-slate-300 font-medium">—</span>'}
+                            : '<span class="text-slate-400 font-normal">—</span>'}
                         </td>
 
-                        <td class="py-2.5 px-2 text-center font-mono font-bold text-slate-900 border-r border-slate-200">
-                          ${act.bibleStudies !== null && act.bibleStudies !== undefined ? act.bibleStudies : '—'}
+                        <td class="py-2.5 px-1.5 md:px-2 text-center border-r border-slate-200">
+                          ${act.bibleStudies !== null && act.bibleStudies !== undefined && act.bibleStudies !== ''
+                            ? `<span class="font-mono font-bold text-slate-900">${act.bibleStudies}</span>`
+                            : '<span class="text-slate-400 font-normal">—</span>'}
                         </td>
 
-                        <td class="py-2.5 px-3 text-center border-r border-slate-200 font-medium text-xs">
-                          ${act.pioneerType || act.isAuxiliaryPioneer
-                            ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-white">${precLabel}</span>`
-                            : '<span class="text-slate-400">—</span>'}
+                        <td class="py-2.5 px-1 md:px-3 text-center border-r border-slate-200 text-xs">
+                          ${isPrec
+                            ? `<span class="px-1.5 md:px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-white inline-block">
+                                <span class="hidden md:inline">${precFull}</span>
+                                <span class="md:hidden">${precShort}</span>
+                              </span>`
+                            : '<span class="text-slate-400 font-normal">—</span>'}
                         </td>
 
-                        <td class="py-2.5 px-3 text-center font-mono font-bold text-slate-900 border-r border-slate-200 bg-slate-50/50">
-                          ${act.hours !== null && act.hours !== undefined ? `${act.hours} h` : '—'}
+                        <td class="py-2.5 px-1.5 md:px-3 text-center border-r border-slate-200 bg-slate-50/50">
+                          <div class="inline-flex items-center justify-center gap-1">
+                            ${act.hours !== null && act.hours !== undefined && act.hours !== ''
+                              ? `<span class="font-mono font-bold text-slate-900">${act.hours}</span>`
+                              : '<span class="text-slate-400 font-normal">—</span>'}
+                            ${hasNotes ? `
+                              <button 
+                                type="button" 
+                                class="md:hidden note-arrow-btn inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 cursor-pointer transition-colors shrink-0"
+                                data-note="${(act.notes || '').replace(/"/g, '&quot;')}"
+                                title="Ver nota: ${(act.notes || '').replace(/"/g, '&quot;')}"
+                              >
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                              </button>
+                            ` : ''}
+                          </div>
                         </td>
 
-                        <td class="py-2.5 px-3 text-slate-600 text-[11px] truncate max-w-xs">
-                          ${hasNotes ? act.notes : '—'}
+                        <td class="py-2.5 px-2 md:px-3 text-[11px] truncate max-w-xs text-left hidden md:table-cell">
+                          ${hasNotes
+                            ? `<span class="text-slate-600">${act.notes}</span>`
+                            : '<span class="text-slate-400 font-normal">—</span>'}
                         </td>
                       </tr>
                     `;
                   }).join('')}
                 </tbody>
 
-                <tfoot>
+                <tfoot class="hidden md:table-footer-group">
                   <tr class="bg-slate-100 border-t-2 border-slate-900 text-slate-900 font-bold text-xs">
                     <td class="py-2.5 px-3 border-r border-slate-300">TOTALES (${activeMonthsCount > 0 ? activeMonthsCount : 12} MESES)</td>
                     
@@ -1179,11 +1322,11 @@ function CardsView() {
                     </td>
 
                     <td class="py-2.5 px-2 text-center border-r border-slate-300 font-mono">
-                      ${totalStudies > 0 ? totalStudies : '—'}
+                      ${totalStudies > 0 ? totalStudies : '<span class="text-slate-400 font-normal">—</span>'}
                     </td>
 
                     <td class="py-2.5 px-3 text-center border-r border-slate-300 text-[11px]">
-                      —
+                      <span class="text-slate-400 font-normal">—</span>
                     </td>
 
                     <td class="py-2.5 px-3 text-center font-mono font-black text-sm border-r border-slate-300 bg-slate-200">
@@ -1198,178 +1341,33 @@ function CardsView() {
               </table>
             </div>
 
+            <!-- Mobile Totales Section (un valor por fila) -->
+            <div class="md:hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-xs text-slate-800">
+              <div class="font-extrabold text-slate-900 text-xs uppercase tracking-wider mb-2 border-b border-slate-200 pb-2 flex items-center justify-between">
+                <span>Totales</span>
+                <span class="text-[10px] text-slate-500 font-mono font-normal">Año ${selectedYear}</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span class="text-slate-600 font-medium">Meses totales</span>
+                <span class="font-mono font-bold text-slate-900">${activeMonthsCount > 0 ? activeMonthsCount : 12}</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span class="text-slate-600 font-medium">Meses que participó</span>
+                <span class="font-mono font-bold text-slate-900">${monthsParticipated}</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span class="text-slate-600 font-medium">Horas totales</span>
+                <span class="font-mono font-extrabold text-indigo-700 text-sm">${totalHours} h</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="text-slate-600 font-medium">Promedio de horas</span>
+                <span class="font-mono font-bold text-slate-900">${avgHours} h/mes</span>
+              </div>
+            </div>
+
           </div>
         `;
       })()}
-    </div>
-
-    <!-- EDIT MODAL DIALOG -->
-    ${state.cardsEditingPub ? RenderEditModal(state.cardsEditingPub) : ''}
-  `;
-}
-
-function RenderEditModal(pub) {
-  const currentMonthKey = state.cardsModalMonthKey || '2025-09';
-  const act = pub.monthlyData[currentMonthKey] || {};
-
-  return `
-    <div id="cards-edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs print:hidden">
-      <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden font-sans">
-        
-        <!-- Header -->
-        <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
-          <div>
-            <h3 class="font-bold text-base tracking-tight uppercase">EDITAR REGISTRO DE PUBLICADOR</h3>
-            <p class="text-xs text-slate-400 font-medium">${pub.nombre} • Grupo ${pub.grupo}</p>
-          </div>
-          <button id="close-modal-btn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <!-- Modal Tabs -->
-        <div class="flex border-b border-slate-200 bg-slate-50 px-4">
-          <button
-            id="modal-tab-info"
-            class="py-3 px-4 font-bold text-xs uppercase tracking-wider border-b-2 border-indigo-600 text-indigo-600 bg-white transition-colors cursor-pointer"
-          >
-            Datos Personales
-          </button>
-          <button
-            id="modal-tab-activity"
-            class="py-3 px-4 font-bold text-xs uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-          >
-            Editar Actividad Mensual
-          </button>
-        </div>
-
-        <!-- Modal Body -->
-        <div class="p-6 overflow-y-auto flex-1 space-y-4">
-          
-          <!-- Tab 1: Personal Info -->
-          <div id="modal-body-info" class="space-y-4 text-sm">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nombre completo</label>
-                <input id="edit-pub-name" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-slate-50 text-slate-900 font-medium" value="${pub.nombre}" />
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Grupo de Servicio</label>
-                <input id="edit-pub-group" type="number" min="1" max="10" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-slate-50 text-slate-900 font-medium" value="${pub.grupo}" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fecha Nacimiento (DD/MM/AAAA)</label>
-                <input id="edit-pub-birth" type="text" placeholder="e.g. 21/12/1951" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-slate-50 text-slate-900 font-mono text-xs" value="${pub.birthDate || ''}" />
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fecha Bautismo (DD/MM/AAAA)</label>
-                <input id="edit-pub-baptism" type="text" placeholder="e.g. 11/09/1978" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-slate-50 text-slate-900 font-mono text-xs" value="${pub.baptismDate || ''}" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Familia</label>
-                <input id="edit-pub-family" type="text" placeholder="e.g. Acuña" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-slate-50 text-slate-900 text-xs" value="${pub.family || ''}" />
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Teléfono / WhatsApp</label>
-                <input id="edit-pub-whatsapp" type="text" placeholder="e.g. 091324703" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-slate-50 text-slate-900 font-mono text-xs" value="${pub.whatsapp || ''}" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200">
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Género</label>
-                <div class="flex gap-4 items-center">
-                  <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-800 text-xs">
-                    <input type="radio" name="edit-gender" value="H" ${pub.gender === 'H' ? 'checked' : ''} />
-                    <span>Hombre</span>
-                  </label>
-                  <label class="flex items-center gap-2 cursor-pointer font-medium text-slate-800 text-xs">
-                    <input type="radio" name="edit-gender" value="M" ${pub.gender !== 'H' ? 'checked' : ''} />
-                    <span>Mujer</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nombramiento</label>
-                <select id="edit-pub-nomb" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold bg-slate-50">
-                  <option value="" ${!pub.appointment ? 'selected' : ''}>Publicador</option>
-                  <option value="A" ${pub.appointment === 'A' ? 'selected' : ''}>Anciano</option>
-                  <option value="SM" ${pub.appointment === 'SM' ? 'selected' : ''}>Siervo Ministerial</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab 2: Activity -->
-          <div id="modal-body-activity" class="space-y-4 text-sm hidden">
-            <div>
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Seleccionar Mes a Editar</label>
-              <select id="modal-month-select" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-slate-900 bg-slate-50 focus:border-indigo-600 focus:outline-none">
-                ${MONTH_CONFIGS.map(m => `
-                  <option value="${m.key}" ${currentMonthKey === m.key ? 'selected' : ''}>${m.label} ${m.year} (AS ${m.serviceYear})</option>
-                `).join('')}
-              </select>
-            </div>
-
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-              
-              <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                <input id="edit-month-participated" type="checkbox" class="w-4 h-4 text-indigo-600 rounded" ${act.participated ? 'checked' : ''} />
-                <div>
-                  <span class="font-bold text-slate-900 block text-xs">Participó en el ministerio este mes</span>
-                  <span class="text-[11px] text-slate-400 font-medium">Marcar casilla de participación</span>
-                </div>
-              </label>
-
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Precursorado en este Mes</label>
-                <select id="edit-month-pioneer" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium text-xs text-slate-900 bg-white focus:border-indigo-600 focus:outline-none">
-                  <option value="" ${!act.pioneerType ? 'selected' : ''}>Ninguno (Publicador)</option>
-                  <option value="Auxiliar 15 hs" ${act.pioneerType === 'Auxiliar 15 hs' ? 'selected' : ''}>Auxiliar 15 hs</option>
-                  <option value="Auxiliar 30 hs" ${act.pioneerType === 'Auxiliar 30 hs' ? 'selected' : ''}>Auxiliar 30 hs</option>
-                  <option value="Regular" ${act.pioneerType === 'Regular' ? 'selected' : ''}>Regular</option>
-                </select>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Cursos Bíblicos</label>
-                  <input id="edit-month-studies" type="number" min="0" placeholder="e.g. 1" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-white font-mono text-xs font-bold" value="${act.bibleStudies !== null && act.bibleStudies !== undefined ? act.bibleStudies : ''}" />
-                </div>
-                <div>
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Horas Registradas</label>
-                  <input id="edit-month-hours" type="number" min="0" placeholder="e.g. 15" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-white font-mono text-xs font-bold" value="${act.hours !== null && act.hours !== undefined ? act.hours : ''}" />
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notas / Observaciones</label>
-                <input id="edit-month-notes" type="text" placeholder="e.g. Enfermo..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none bg-white text-xs" value="${act.notes || ''}" />
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Footer -->
-        <div class="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-end gap-3">
-          <button id="cancel-modal-btn" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
-            Cancelar
-          </button>
-          <button id="save-modal-btn" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer">
-            <span>Guardar Cambios</span>
-          </button>
-        </div>
-
-      </div>
     </div>
   `;
 }
@@ -1402,60 +1400,6 @@ function LoadingView() {
   `;
 }
 
-async function handleSaveCardEdits() {
-  const pub = state.cardsEditingPub;
-  if (!pub) return;
-
-  const newName = $('#edit-pub-name').val();
-  const newGroup = parseInt($('#edit-pub-group').val(), 10) || 1;
-  const newBirth = $('#edit-pub-birth').val();
-  const newBaptism = $('#edit-pub-baptism').val();
-  const newFamily = $('#edit-pub-family').val();
-  const newWhatsApp = $('#edit-pub-whatsapp').val();
-  const newGender = $('input[name="edit-gender"]:checked').val() || 'M';
-  const newNomb = $('#edit-pub-nomb').val() || '';
-
-  const monthKey = $('#modal-month-select').val();
-  const monthAct = pub.monthlyData[monthKey] || {};
-
-  const newPart = $('#edit-month-participated').is(':checked');
-  const newPioneer = $('#edit-month-pioneer').val();
-  const newStudies = $('#edit-month-studies').val();
-  const newHours = $('#edit-month-hours').val();
-  const newNotes = $('#edit-month-notes').val();
-
-  setState({ cardsEditingPub: null });
-
-  try {
-    // Update personal fields in Google Sheets if colIndices exist
-    if (pub.colIndices) {
-      if (pub.colIndices.nombre !== -1) await updateCell(`${getColumnLetter(pub.colIndices.nombre)}${pub.rowIndex}`, newName);
-      if (pub.colIndices.grupo !== -1) await updateCell(`${getColumnLetter(pub.colIndices.grupo)}${pub.rowIndex}`, newGroup);
-      if (pub.colIndices.whatsapp !== -1) await updateCell(`${getColumnLetter(pub.colIndices.whatsapp)}${pub.rowIndex}`, newWhatsApp);
-      if (pub.colIndices.nacimiento !== -1) await updateCell(`${getColumnLetter(pub.colIndices.nacimiento)}${pub.rowIndex}`, newBirth);
-      if (pub.colIndices.bautismo !== -1) await updateCell(`${getColumnLetter(pub.colIndices.bautismo)}${pub.rowIndex}`, newBaptism);
-      if (pub.colIndices.h_m !== -1) await updateCell(`${getColumnLetter(pub.colIndices.h_m)}${pub.rowIndex}`, newGender);
-      if (pub.colIndices.nombramiento !== -1) await updateCell(`${getColumnLetter(pub.colIndices.nombramiento)}${pub.rowIndex}`, newNomb);
-      if (pub.colIndices.familia !== -1) await updateCell(`${getColumnLetter(pub.colIndices.familia)}${pub.rowIndex}`, newFamily);
-    }
-
-    // Update month fields
-    if (monthAct.colIndices) {
-      if (monthAct.colIndices.participo !== -1) await updateCell(`${getColumnLetter(monthAct.colIndices.participo)}${pub.rowIndex}`, newPart ? 'TRUE' : 'FALSE');
-      if (monthAct.colIndices.cursos !== -1) await updateCell(`${getColumnLetter(monthAct.colIndices.cursos)}${pub.rowIndex}`, newStudies);
-      if (monthAct.colIndices.precursorado !== -1) await updateCell(`${getColumnLetter(monthAct.colIndices.precursorado)}${pub.rowIndex}`, newPioneer);
-      if (monthAct.colIndices.horas !== -1) await updateCell(`${getColumnLetter(monthAct.colIndices.horas)}${pub.rowIndex}`, newHours);
-      if (monthAct.colIndices.notas !== -1) await updateCell(`${getColumnLetter(monthAct.colIndices.notas)}${pub.rowIndex}`, newNotes);
-    }
-
-    // Reload fresh data from sheets
-    await loadData();
-  } catch (err) {
-    console.error('Error saving card edits:', err);
-    setState({ error: `Error al guardar cambios: ${err.message}` });
-  }
-}
-
 function render() {
   const $app = $('#app');
   let html = "";
@@ -1472,7 +1416,7 @@ function render() {
   if (window.lucide) window.lucide.createIcons();
   
   $('#login-btn').on('click', login);
-  $('#logout-btn').on('click', logout);
+  $('.logout-btn, #logout-btn').on('click', logout);
   $('#reload-btn').on('click', loadData);
 
   // View Switcher
@@ -1552,9 +1496,50 @@ function render() {
     }
   });
 
+  $('.open-card-btn').on('click', function(e) {
+    e.preventDefault();
+    const rowIndex = $(this).data('pub-row');
+    const name = $(this).data('pub-name');
+    
+    const full = state.fullPublishers || [];
+    const targetPub = full.find(p => p.rowIndex === rowIndex || p.nombre === name);
+    
+    if (targetPub) {
+      window.location.hash = 'cards';
+      const defaultGroup = typeof state.groupNumber === 'number' 
+        ? state.groupNumber 
+        : (parseInt(state.groupNumber, 10) || (targetPub.grupo ? parseInt(targetPub.grupo, 10) : 1));
+      
+      setState({
+        currentView: 'cards',
+        cardsSelectedPubId: targetPub.id,
+        cardsSelectedGroup: defaultGroup,
+        cardsSearchTerm: ''
+      });
+    }
+  });
+
   // --- Tarjetas View Handlers ---
+  $(document).on('click', '.note-arrow-btn', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const note = $(this).attr('data-note');
+    if (note) {
+      alert(`Nota: ${note}`);
+    }
+  });
+
   $('.cards-tab-btn').on('click', function() {
     const tabAttr = $(this).data('card-tab');
+    let groupVal = tabAttr;
+    if (tabAttr !== 'all' && tabAttr !== 'men' && tabAttr !== 'pioneers') {
+      groupVal = parseInt(tabAttr, 10);
+    }
+    setState({ cardsSelectedGroup: groupVal });
+  });
+
+  $('.cards-tab-select').on('change', function() {
+    const tabAttr = $(this).val();
     let groupVal = tabAttr;
     if (tabAttr !== 'all' && tabAttr !== 'men' && tabAttr !== 'pioneers') {
       groupVal = parseInt(tabAttr, 10);
@@ -1644,45 +1629,6 @@ function render() {
 
   $('#sy2025-btn').on('click', () => {
     setState({ cardsServiceYear: 2025 });
-  });
-
-  $('#print-card-btn').on('click', () => {
-    window.print();
-  });
-
-  $('#edit-publisher-card-btn').on('click', () => {
-    const pub = state.fullPublishers.find(p => p.id === state.cardsSelectedPubId);
-    if (pub) {
-      setState({ cardsEditingPub: pub });
-    }
-  });
-
-  // Modal events
-  $('#close-modal-btn, #cancel-modal-btn').on('click', () => {
-    setState({ cardsEditingPub: null });
-  });
-
-  $('#modal-tab-info').on('click', function() {
-    $('#modal-tab-info').addClass('border-indigo-600 text-indigo-600 bg-white').removeClass('border-transparent text-slate-400');
-    $('#modal-tab-activity').addClass('border-transparent text-slate-400').removeClass('border-indigo-600 text-indigo-600 bg-white');
-    $('#modal-body-info').removeClass('hidden');
-    $('#modal-body-activity').addClass('hidden');
-  });
-
-  $('#modal-tab-activity').on('click', function() {
-    $('#modal-tab-activity').addClass('border-indigo-600 text-indigo-600 bg-white').removeClass('border-transparent text-slate-400');
-    $('#modal-tab-info').addClass('border-transparent text-slate-400').removeClass('border-indigo-600 text-indigo-600 bg-white');
-    $('#modal-body-activity').removeClass('hidden');
-    $('#modal-body-info').addClass('hidden');
-  });
-
-  $('#modal-month-select').on('change', function() {
-    const selectedKey = $(this).val();
-    setState({ cardsModalMonthKey: selectedKey });
-  });
-
-  $('#save-modal-btn').on('click', () => {
-    handleSaveCardEdits();
   });
 }
 
