@@ -38,7 +38,8 @@ const PERIODS = getPeriods();
 const DEFAULT_PERIOD = PERIODS[0].value;
 
 // Google Client ID
-const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleusercontent.com';
+// const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleusercontent.com';
+const CLIENT_ID = '834265923370-3d3q3nueuoggeeis1e5o1gohj3gnlvjv.apps.googleusercontent.com';
 
 // Configuration for S-21-S Tarjetas Publicador (24 months for 2025 and 2026 Service Years)
 const MONTH_CONFIGS = [
