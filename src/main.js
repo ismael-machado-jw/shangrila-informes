@@ -38,8 +38,9 @@ const PERIODS = getPeriods();
 const DEFAULT_PERIOD = PERIODS[0].value;
 
 // Google Client ID
-// const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleusercontent.com';
-const CLIENT_ID = '834265923370-3d3q3nueuoggeeis1e5o1gohj3gnlvjv.apps.googleusercontent.com';
+const CLIENT_ID = '241558307299-e146vcp9cuvjfcm50acv3kv4aigciome.apps.googleusercontent.com';
+// const CLIENT_ID = '834265923370-3d3q3nueuoggeeis1e5o1gohj3gnlvjv.apps.googleusercontent.com';
+
 
 // Configuration for S-21-S Tarjetas Publicador (24 months for 2025 and 2026 Service Years)
 const MONTH_CONFIGS = [
@@ -77,7 +78,7 @@ let state = {
   userEmail: localStorage.getItem('user_email'),
   groupNumber: initialGroupNumber,
   selectedPeriod: DEFAULT_PERIOD,
-  currentView: window.location.hash === '#cards' ? 'cards' : 'table',
+  currentView: window.location.hash === '#cards' ? 'cards' : (window.location.hash === '#responsibilities' ? 'responsibilities' : 'table'),
   fetchingInfo: false,
   data: [],
   fullPublishers: [],
@@ -91,6 +92,12 @@ let state = {
   cardsSearchTerm: "",
   cardsSelectedPubId: "",
   cardsServiceYear: 2026,
+  // Responsibilities view state
+  responsibilitiesData: null,
+  resSearchTerm: "",
+  resFilterBy: "Nombre", // "Nombre" or "Responsabilidad"
+  resSelectedCategory: "Todas", // "Todas" or Category Name
+  resSelectedValue: "", // Selected Name or Responsibility
 };
 
 // --- Google Sheets Service Logic ---
@@ -191,6 +198,9 @@ function isPioneerInServiceYear(pub, serviceYear) {
 // --- App Logic ---
 function getFriendlyError(err) {
   const msg = (err.message || err.toString() || '').toLowerCase();
+  if (msg.includes('google sheets api has not been used') || msg.includes('has not been used in project') || msg.includes('disabled')) {
+    return 'La API de Google Sheets no está habilitada en el proyecto de Google Cloud. Por favor, habilite la API de Google Sheets en Google Cloud Console o asegúrese de usar las credenciales correctas.';
+  }
   if (msg.includes('403') || msg.includes('permission') || msg.includes('scopes')) {
     return 'No tiene permisos suficientes. Al conectar con Google, asegúrese de marcar todas las casillas de verificación de permisos solicitados para que la aplicación pueda funcionar correctamente.';
   }
@@ -420,12 +430,29 @@ async function loadData() {
       }
     }
 
+    let responsibilitiesData = state.responsibilitiesData;
+    try {
+      const resResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets/1TXTFt4uPkygz9MOxeogkfWy4p4WTqDWLDUYqluEQhXg/values/varones?key=AIzaSyD37ddBLRxw48pq0CLXYd2LIjUrneaKk5s');
+      if (resResponse.ok) {
+        const resJson = await resResponse.json();
+        if (resJson.values && resJson.values.length > 0) {
+          responsibilitiesData = {
+            headers: resJson.values[0],
+            rows: resJson.values.slice(1)
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load responsibilities:", e);
+    }
+
     setState({
       data: publishers,
       fullPublishers,
       headers,
       loading: false,
-      cardsSelectedPubId: selectedPubId
+      cardsSelectedPubId: selectedPubId,
+      responsibilitiesData
     });
   } catch (err) {
     console.error(err);
@@ -643,7 +670,7 @@ function MainHeader() {
 
       <!-- Navigation buttons (Informes / Tarjetas) below title on mobile, right side on desktop -->
       <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
-        <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 w-full sm:w-auto">
+        <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 w-full sm:w-auto overflow-x-auto">
           <button id="view-table-btn" class="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${state.currentView === 'table' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
             <i data-lucide="table" class="w-4 h-4"></i>
             <span>Informes</span>
@@ -652,6 +679,11 @@ function MainHeader() {
             <i data-lucide="contact" class="w-4 h-4"></i>
             <span class="sm:hidden">Tarjetas</span>
             <span class="hidden sm:inline">Tarjetas Publicador</span>
+          </button>
+          <button id="view-res-btn" class="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${state.currentView === 'responsibilities' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
+            <i data-lucide="briefcase" class="w-4 h-4"></i>
+            <span class="sm:hidden">Resp.</span>
+            <span class="hidden sm:inline">Responsabilidades</span>
           </button>
         </div>
 
@@ -1373,7 +1405,426 @@ function CardsView() {
   `;
 }
 
+const RESP_CATEGORIES = [
+  {
+    name: 'Estudiantiles',
+    bg: 'bg-sky-50/50',
+    border: 'border-sky-200',
+    headerBg: 'bg-sky-100/70',
+    text: 'text-sky-900',
+    badge: 'bg-sky-100 text-sky-800 border-sky-300',
+    iconColor: 'text-sky-600',
+    items: ['Lec. Biblia', 'Asignación', 'Asignación 4', 'Ayudante', 'Discurso']
+  },
+  {
+    name: 'NVC',
+    bg: 'bg-purple-50/50',
+    border: 'border-purple-200',
+    headerBg: 'bg-purple-100/70',
+    text: 'text-purple-900',
+    badge: 'bg-purple-100 text-purple-800 border-purple-300',
+    iconColor: 'text-purple-600',
+    items: ['Presidente', 'Consejero', 'Tesoros', 'Perlas', 'Vida Cristiana', 'Necesidades', 'Conductor Estudio', 'Lector Estudio']
+  },
+  {
+    name: 'Reuniones',
+    bg: 'bg-indigo-50/50',
+    border: 'border-indigo-200',
+    headerBg: 'bg-indigo-100/70',
+    text: 'text-indigo-900',
+    badge: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+    iconColor: 'text-indigo-600',
+    items: ['Oración']
+  },
+  {
+    name: 'Fin de semana',
+    bg: 'bg-amber-50/50',
+    border: 'border-amber-200',
+    headerBg: 'bg-amber-100/70',
+    text: 'text-amber-900',
+    badge: 'bg-amber-100 text-amber-800 border-amber-300',
+    iconColor: 'text-amber-600',
+    items: ['Presidente Sábado', 'Conductor Atalaya', 'Lector Atalaya', 'Conferencias Locales', 'Conferencias Públicas']
+  },
+  {
+    name: 'Multimedia',
+    bg: 'bg-rose-50/50',
+    border: 'border-rose-200',
+    headerBg: 'bg-rose-100/70',
+    text: 'text-rose-900',
+    badge: 'bg-rose-100 text-rose-800 border-rose-300',
+    iconColor: 'text-rose-600',
+    items: ['Video', 'Sonido']
+  },
+  {
+    name: 'Acomodadores',
+    bg: 'bg-emerald-50/50',
+    border: 'border-emerald-200',
+    headerBg: 'bg-emerald-100/70',
+    text: 'text-emerald-900',
+    badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    iconColor: 'text-emerald-600',
+    items: ['Microfonista', 'Plataforma', 'Apertura', 'Acomodador Entrada', 'Acomodador Auditorio', 'Tránsito']
+  },
+  {
+    name: 'Predicación',
+    bg: 'bg-teal-50/50',
+    border: 'border-teal-200',
+    headerBg: 'bg-teal-100/70',
+    text: 'text-teal-900',
+    badge: 'bg-teal-100 text-teal-800 border-teal-300',
+    iconColor: 'text-teal-600',
+    items: ['Conductor Predicación']
+  },
+  {
+    name: 'Departamento',
+    bg: 'bg-blue-50/50',
+    border: 'border-blue-200',
+    headerBg: 'bg-blue-100/70',
+    text: 'text-blue-900',
+    badge: 'bg-blue-100 text-blue-800 border-blue-300',
+    iconColor: 'text-blue-600',
+    items: ['Limpieza', 'Publicaciones', 'Territorios', 'Mantenimiento', 'Cuentas', 'Acomodadores', 'Video y Sonido']
+  },
+  {
+    name: 'Comité',
+    bg: 'bg-red-50/50',
+    border: 'border-red-200',
+    headerBg: 'bg-red-100/70',
+    text: 'text-red-900',
+    badge: 'bg-red-100 text-red-800 border-red-300',
+    iconColor: 'text-red-600',
+    items: ['Ayuda', 'Enfermos']
+  },
+  {
+    name: 'Otros',
+    bg: 'bg-slate-50',
+    border: 'border-slate-200',
+    headerBg: 'bg-slate-200/70',
+    text: 'text-slate-900',
+    badge: 'bg-slate-200 text-slate-800 border-slate-300',
+    iconColor: 'text-slate-600',
+    items: ['NVC', 'Conferencias', 'Tecnología', 'Cartelera', 'Transporte', 'Asamblea']
+  }
+];
+
+function getCategoryForResp(respName) {
+  if (!respName) return RESP_CATEGORIES[RESP_CATEGORIES.length - 1];
+  const norm = respName.trim().toLowerCase();
+  for (const cat of RESP_CATEGORIES) {
+    if (cat.items.some(item => item.toLowerCase() === norm)) {
+      return cat;
+    }
+  }
+  return RESP_CATEGORIES[RESP_CATEGORIES.length - 1];
+}
+
+function formatYesNo(val) {
+  if (!val) return 'No';
+  const str = val.toString().trim().toUpperCase();
+  if (str === 'TRUE' || str === 'SÍ' || str === 'SI' || str === '1' || str === 'S') return 'Sí';
+  return 'No';
+}
+
+function formatNombramiento(val) {
+  if (!val) return '—';
+  const str = val.toString().trim();
+  if (!str || str.toUpperCase() === 'FALSE' || str === '-' || str === '0') return '—';
+  const upper = str.toUpperCase();
+  if (upper === 'A' || upper === 'ANCIANO') return 'Anciano';
+  if (upper === 'SM' || upper.includes('SIERVO')) return 'Siervo Ministerial';
+  return str;
+}
+
+function ResponsibilitiesView() {
+  if (!state.responsibilitiesData) {
+    return `
+      <div class="max-w-4xl mx-auto py-12 px-4 sm:px-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+          <i data-lucide="alert-circle" class="w-12 h-12 text-slate-400 mx-auto mb-4"></i>
+          <h2 class="text-lg font-bold text-slate-900 mb-2">Datos no disponibles</h2>
+          <p class="text-slate-500">No se pudieron cargar los datos de responsabilidades.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  const { headers, rows } = state.responsibilitiesData;
+  const respHeaders = headers.slice(4).filter(h => h && h.toLowerCase() !== 'especial'); // Responsibilities start at index 4
+
+  // Available names with appointment suffix
+  function getAppointmentSuffix(nombramiento) {
+    if (!nombramiento) return '';
+    const upper = nombramiento.toString().trim().toUpperCase();
+    if (upper === 'A' || upper === 'ANCIANO') return ' (A)';
+    if (upper === 'SM' || upper.includes('SIERVO')) return ' (SM)';
+    return '';
+  }
+
+  const personList = rows
+    .map(r => ({
+      name: r[0],
+      suffix: getAppointmentSuffix(r[3])
+    }))
+    .filter(p => Boolean(p.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const names = personList.map(p => p.name);
+
+  // Available responsibilities filtered by category if filtering by responsibility
+  let filteredRespHeaders = respHeaders;
+  if (state.resFilterBy === 'Responsabilidad') {
+    if (!state.resSelectedCategory) {
+      state.resSelectedCategory = 'Todas';
+    }
+    if (state.resSelectedCategory && state.resSelectedCategory !== 'Todas') {
+      filteredRespHeaders = respHeaders.filter(r => getCategoryForResp(r).name === state.resSelectedCategory);
+      if (filteredRespHeaders.length === 0) filteredRespHeaders = respHeaders;
+    }
+  }
+
+  // If no selected value, pick first based on filter
+  if (!state.resSelectedValue) {
+    if (state.resFilterBy === 'Nombre' && names.length > 0) {
+      state.resSelectedValue = names[0];
+    } else if (state.resFilterBy === 'Responsabilidad' && filteredRespHeaders.length > 0) {
+      state.resSelectedValue = filteredRespHeaders[0];
+    }
+  } else if (state.resFilterBy === 'Responsabilidad') {
+    if (!filteredRespHeaders.includes(state.resSelectedValue)) {
+      state.resSelectedValue = filteredRespHeaders[0] || respHeaders[0];
+    }
+  }
+
+  let contentHtml = '';
+
+  if (state.resFilterBy === 'Nombre') {
+    const personRow = rows.find(r => r[0] === state.resSelectedValue);
+    if (personRow) {
+      const activeResps = [];
+      const notes = [];
+
+      for (let i = 4; i < headers.length; i++) {
+        const headerName = headers[i];
+        if (!headerName) continue;
+        const val = personRow[i] ? personRow[i].toString().trim() : '';
+
+        // Exclude Especial from active responsibilities list
+        if (headerName.toLowerCase() === 'especial') {
+          if (val && val.toUpperCase() !== 'FALSE' && val.toUpperCase() !== 'TRUE') {
+            let noteVal = val;
+            if (noteVal.toLowerCase().startsWith('especial:')) {
+              noteVal = noteVal.substring(9).trim();
+            }
+            notes.push(noteVal);
+          }
+          continue;
+        }
+
+        if (val.toUpperCase() === 'TRUE') {
+          activeResps.push({ name: headerName, isNote: false });
+        } else if (val.toUpperCase() !== 'FALSE' && val !== '') {
+          activeResps.push({ name: headerName, isNote: true, noteText: val });
+          let noteVal = val;
+          if (noteVal.toLowerCase().startsWith('especial:')) {
+            noteVal = noteVal.substring(9).trim();
+          }
+          notes.push(`${headerName}: ${noteVal}`);
+        }
+      }
+
+      // Group active responsibilities by category
+      const groupedResps = RESP_CATEGORIES.map(cat => {
+        const catItems = activeResps.filter(item => getCategoryForResp(item.name).name === cat.name);
+        return { category: cat, items: catItems };
+      }).filter(g => g.items.length > 0);
+
+      contentHtml = `
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden space-y-6 p-4 sm:p-6">
+          <!-- Person Summary Header -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+              <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">${state.resSelectedValue}</h3>
+              <span class="text-xs font-mono bg-indigo-100 text-indigo-800 border border-indigo-200 px-2.5 py-1 rounded-full font-bold">
+                ${activeResps.length} asignaciones
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <span class="bg-white text-slate-700 px-3 py-1.5 rounded-lg font-medium border border-slate-200 shadow-2xs">
+                <strong class="text-slate-900 font-bold">Menor:</strong> ${formatYesNo(personRow[1])}
+              </span>
+              <span class="bg-white text-slate-700 px-3 py-1.5 rounded-lg font-medium border border-slate-200 shadow-2xs">
+                <strong class="text-slate-900 font-bold">Bautizado:</strong> ${formatYesNo(personRow[2])}
+              </span>
+              <span class="bg-white text-slate-700 px-3 py-1.5 rounded-lg font-medium border border-slate-200 shadow-2xs">
+                <strong class="text-slate-900 font-bold">Nombramiento:</strong> ${formatNombramiento(personRow[3])}
+              </span>
+            </div>
+          </div>
+
+          <!-- Grouped Responsibilities -->
+          ${groupedResps.length > 0 ? `
+            <div class="space-y-4">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Responsabilidades Asignadas</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${groupedResps.map(({ category: cat, items }) => `
+                  <div class="${cat.bg} border ${cat.border} rounded-xl overflow-hidden shadow-2xs">
+                    <div class="${cat.headerBg} px-3.5 py-2 border-b ${cat.border} flex items-center justify-between">
+                      <span class="text-xs font-bold uppercase tracking-wider ${cat.text}">${cat.name}</span>
+                      <span class="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${cat.badge}">
+                        ${items.length}
+                      </span>
+                    </div>
+                    <div class="p-3">
+                      <ul class="space-y-1.5">
+                        ${items.map(item => `
+                          <li class="flex items-center gap-2 text-xs font-medium text-slate-800 bg-white/80 backdrop-blur-xs px-2.5 py-1.5 rounded-lg border border-slate-200/80">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 ${cat.iconColor} shrink-0"></i>
+                            <span>${item.name}</span>
+                          </li>
+                        `).join('')}
+                      </ul>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="text-center py-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              <p class="text-sm text-slate-500 italic">No tiene responsabilidades asignadas.</p>
+            </div>
+          `}
+
+          ${notes.length > 0 ? `
+            <div class="pt-4 border-t border-slate-200">
+              <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Notas</h4>
+              <ul class="space-y-1.5 bg-amber-50/50 border border-amber-200/80 rounded-xl p-3">
+                ${notes.map(n => `
+                  <li class="text-xs text-amber-900 flex items-start gap-2">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5"></i>
+                    <span>${n}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+  } else {
+    // Filter by Responsibility
+    const respIndex = headers.indexOf(state.resSelectedValue);
+    if (respIndex >= 4) {
+      const assignedNames = [];
+      const notes = [];
+      const cat = getCategoryForResp(state.resSelectedValue);
+
+      rows.forEach(r => {
+        if (r[respIndex]) {
+          const val = r[respIndex].toString().trim();
+          if (val.toUpperCase() === 'TRUE') {
+            assignedNames.push(r[0]);
+          } else if (val.toUpperCase() !== 'FALSE' && val !== '') {
+            assignedNames.push(r[0]);
+            let noteVal = val;
+            if (noteVal.toLowerCase().startsWith('especial:')) {
+              noteVal = noteVal.substring(9).trim();
+            }
+            notes.push(`${r[0]}: ${noteVal}`);
+          }
+        }
+      });
+
+      assignedNames.sort();
+
+      contentHtml = `
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-slate-900">${state.resSelectedValue}</h3>
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${cat.badge}">
+                ${cat.name}
+              </span>
+            </div>
+            <span class="text-xs font-mono bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold">
+              ${assignedNames.length} varones
+            </span>
+          </div>
+          <div class="p-4">
+            ${assignedNames.length > 0 ? `
+              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                ${assignedNames.map(n => `
+                  <li class="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                    <i data-lucide="user" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                    <span class="font-medium">${n}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            ` : `
+              <p class="text-sm text-slate-500 italic">Nadie tiene esta responsabilidad asignada.</p>
+            `}
+
+            ${notes.length > 0 ? `
+              <div class="mt-4 pt-4 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Notas</h4>
+                <ul class="space-y-1">
+                  ${notes.map(n => `<li class="text-sm text-slate-700">${n}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  return `
+    <div class="max-w-4xl mx-auto py-6 px-4 sm:px-6">
+      <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <span class="text-sm font-medium text-slate-700 shrink-0">Filtrar por:</span>
+          <select id="res-filter-type" class="w-full sm:w-auto bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+            <option value="Nombre" ${state.resFilterBy === 'Nombre' ? 'selected' : ''}>Nombre</option>
+            <option value="Responsabilidad" ${state.resFilterBy === 'Responsabilidad' ? 'selected' : ''}>Responsabilidad</option>
+          </select>
+        </div>
+        
+        ${state.resFilterBy === 'Nombre' ? `
+          <div class="w-full sm:w-64">
+            <select id="res-value-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+              ${personList.map(p => `<option value="${p.name}" ${state.resSelectedValue === p.name ? 'selected' : ''}>${p.name}${p.suffix}</option>`).join('')}
+            </select>
+          </div>
+        ` : `
+          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div class="w-full sm:w-48">
+              <select id="res-category-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+                <option value="Todas" ${state.resSelectedCategory === 'Todas' ? 'selected' : ''}>Todas las categorías</option>
+                ${RESP_CATEGORIES.map(cat => `<option value="${cat.name}" ${state.resSelectedCategory === cat.name ? 'selected' : ''}>${cat.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="w-full sm:w-56">
+              <select id="res-value-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+                ${filteredRespHeaders.map(r => `<option value="${r}" ${state.resSelectedValue === r ? 'selected' : ''}>${r}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        `}
+      </div>
+
+      ${contentHtml}
+    </div>
+  `;
+}
+
 function MainView() {
+  let viewHtml = TableView();
+  if (state.currentView === 'cards') {
+    viewHtml = CardsView();
+  } else if (state.currentView === 'responsibilities') {
+    viewHtml = ResponsibilitiesView();
+  }
+
   return `
     ${MainHeader()}
     ${state.error ? `
@@ -1385,7 +1836,7 @@ function MainView() {
       </div>
     ` : ''}
 
-    ${state.currentView === 'cards' ? CardsView() : TableView()}
+    ${viewHtml}
   `;
 }
 
@@ -1429,6 +1880,11 @@ function render() {
   $('#view-cards-btn').on('click', () => {
     window.location.hash = 'cards';
     setState({ currentView: 'cards' });
+  });
+
+  $('#view-res-btn').on('click', () => {
+    window.location.hash = 'responsibilities';
+    setState({ currentView: 'responsibilities' });
   });
 
   // Table view handlers
@@ -1631,11 +2087,55 @@ function render() {
   $('#sy2025-btn').on('click', () => {
     setState({ cardsServiceYear: 2025 });
   });
+
+  // --- Responsibilities View Handlers ---
+  $('#res-filter-type').on('change', function() {
+    setState({ 
+      resFilterBy: $(this).val(),
+      resSelectedCategory: 'Todas',
+      resSelectedValue: '' // Reset selection when filter changes
+    });
+  });
+
+  $('#res-category-select').on('change', function() {
+    const newCat = $(this).val();
+    const { headers } = state.responsibilitiesData || { headers: [] };
+    const respHeaders = headers.slice(4).filter(h => h && h.toLowerCase() !== 'especial');
+    
+    let filteredResps = respHeaders;
+    if (newCat && newCat !== 'Todas') {
+      filteredResps = respHeaders.filter(r => getCategoryForResp(r).name === newCat);
+    }
+    
+    const newSelectedValue = filteredResps.length > 0 ? filteredResps[0] : (respHeaders[0] || '');
+    
+    setState({ 
+      resSelectedCategory: newCat,
+      resSelectedValue: newSelectedValue
+    });
+  });
+
+  $('#res-value-select').on('change', function() {
+    const newSelectedValue = $(this).val();
+    if (state.resFilterBy === 'Responsabilidad') {
+      const cat = getCategoryForResp(newSelectedValue).name;
+      setState({ 
+        resSelectedValue: newSelectedValue,
+        resSelectedCategory: state.resSelectedCategory === 'Todas' ? 'Todas' : cat
+      });
+    } else {
+      setState({ resSelectedValue: newSelectedValue });
+    }
+  });
 }
 
 $(() => {
   window.addEventListener('hashchange', () => {
-    const newView = window.location.hash === '#cards' ? 'cards' : 'table';
+    const hash = window.location.hash;
+    let newView = 'table';
+    if (hash === '#cards') newView = 'cards';
+    else if (hash === '#responsibilities') newView = 'responsibilities';
+
     if (state.currentView !== newView) {
       setState({ currentView: newView });
     }
